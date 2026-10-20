@@ -1,15 +1,23 @@
 {
   "name": "TimeNest",
   "short_name": "TimeNest",
-  "description": "A private, local-first home for reminders and memories.",
+  "description": "A private, local-first home for reminders, recurring activities, diary entries, and events.",
   "id": "./",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
+  "orientation": "any",
+  "lang": "en",
+  "dir": "ltr",
   "background_color": "#f7f8f5",
   "theme_color": "#2d7567",
+  "categories": ["productivity", "lifestyle", "utilities"],
   "icons": [
+    { "src": "assets/icons/timenest-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/timenest-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/timenest-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
     { "src": "assets/icons/timenest-192.svg", "sizes": "192x192", "type": "image/svg+xml", "purpose": "any" },
-    { "src": "assets/icons/timenest-512.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any maskable" }
+    { "src": "assets/icons/timenest-512.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "assets/icons/timenest-maskable-512.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "maskable" }
   ]
 }

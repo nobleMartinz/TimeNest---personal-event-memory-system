@@ -1,4 +1,4 @@
-const CACHE_NAME = 'timenest-shell-v10';
+const CACHE_NAME = 'timenest-shell-v12';
 const SHELL_ASSETS = [
   './',
   './index.html',
@@ -20,7 +20,7 @@ const SHELL_ASSETS = [
   './css/calendar.css?v=1',
   './css/settings.css',
   './css/responsive.css?v=4',
-  './js/app.js?v=8',
+  './js/app.js?v=9',
   './js/data/database.js?v=2',
   './js/data/storage.js?v=2',
   './js/pages/dashboard-page.js?v=2',
@@ -38,14 +38,33 @@ const SHELL_ASSETS = [
   './js/services/event-service.js?v=1',
   './js/services/notification-service.js',
   './js/services/data-transfer-service.js?v=2',
-  './js/services/service-worker-service.js',
+  './js/services/service-worker-service.js?v=2',
   './js/services/auth-service.js',
   './assets/icons/timenest-192.svg',
-  './assets/icons/timenest-512.svg'
+  './assets/icons/timenest-512.svg',
+  './assets/icons/timenest-maskable-512.svg',
+  './assets/icons/timenest-192.png',
+  './assets/icons/timenest-512.png',
+  './assets/icons/timenest-maskable-512.png',
+  './assets/icons/timenest-180.png'
 ];
 
+// Precaching uses `cache: 'reload'` so the shell always holds the copy the
+// server is currently serving, never a stale HTTP-cached one. A single failed
+// asset fails the install, which is the same guarantee `cache.addAll` gives.
+async function precacheShell(cache) {
+  for (const asset of SHELL_ASSETS) {
+    const url = new URL(asset, self.location).toString();
+    const response = await fetch(new Request(url, { cache: 'reload' }));
+    if (!response.ok) {
+      throw new Error(`Could not precache ${asset}: ${response.status}`);
+    }
+    await cache.put(url, response);
+  }
+}
+
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_ASSETS)));
+  event.waitUntil(caches.open(CACHE_NAME).then(precacheShell));
 });
 
 self.addEventListener('activate', (event) => {
@@ -73,7 +92,18 @@ self.addEventListener('fetch', (event) => {
         await cache.put(event.request, response.clone());
         return response;
       } catch (error) {
-        return (await caches.match(event.request)) || caches.match('./index.html');
+        // Offline: fall back to the cached copy of this page.
+        const cached = await caches.match(event.request);
+        if (cached) return cached;
+        // Retry without the query string. A navigation such as
+        // `login.html?next=…` must find the cached `login.html`; falling
+        // through to the app shell would serve the sign-in screen's URL with
+        // the app's content, and the sign-in screen would send the user back
+        // to the sign-in screen for ever.
+        const url = new URL(event.request.url);
+        const withoutQuery = await caches.match(url.origin + url.pathname);
+        if (withoutQuery) return withoutQuery;
+        return caches.match('./index.html');
       }
     }
     const cached = await caches.match(event.request);

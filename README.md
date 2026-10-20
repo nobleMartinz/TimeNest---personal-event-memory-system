@@ -70,7 +70,7 @@ TimeNest/
 ├── repair.html                Service worker / cache cleanup utility
 ├── manifest.webmanifest       PWA manifest
 ├── sw.js                      Service worker (shell precache)
-├── assets/icons/              SVG app icons
+├── assets/icons/              PNG and SVG app icons
 ├── css/                       14 stylesheets: tokens, layout, components, auth, responsive
 ├── js/
 │   ├── app.js                 Entry point: auth gate, routing, navigation, theme, SW registration

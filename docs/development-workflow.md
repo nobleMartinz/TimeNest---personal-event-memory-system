@@ -112,8 +112,8 @@ The service worker caches aggressively, so a changed file can be served stale. T
 
 | Counter | Where | Current value |
 | --- | --- | --- |
-| `CACHE_NAME` | `sw.js:1` | `timenest-shell-v10` |
-| `sw.js?v=` | `js/services/service-worker-service.js:11` | `10` |
+| `CACHE_NAME` | `sw.js:1` | `timenest-shell-v11` |
+| `sw.js?v=` | `js/services/service-worker-service.js:11` | `11` |
 | Asset `?v=` | `index.html`, module import specifiers, and `sw.js` | `variables.css?v=2`, `base.css?v=2`, `layout.css?v=4`, `components.css?v=2`, `auth.css?v=2`, `dashboard.css?v=1`, `reminders.css?v=4`, `events.css?v=1`, `calendar.css?v=1`, `responsive.css?v=4`, `app.js?v=8`, `database.js?v=2`, `storage.js?v=2`, `dashboard-page.js?v=2`, `events-page.js?v=3`, `calendar-page.js?v=2`, `event-service.js?v=1`, `data-transfer-service.js?v=2`, `settings-page.js?v=2`, `auth-page.js?v=2`, `login-entry.js?v=2`, `signup-entry.js?v=2` |
 
 ### Bumping
@@ -128,11 +128,26 @@ A stylesheet is referenced from `index.html`. A JavaScript module is referenced 
 
 ---
 
+## Icons
+
+The install icons live in `assets/icons/`. The PNGs are the installable form; the SVGs are the source of truth.
+
+| Change | What to do |
+| --- | --- |
+| Edit an SVG | Re-rasterise the matching PNG and bump the icon's `?v=` in `sw.js`. |
+| Add an icon | Add the file, list it in `manifest.webmanifest`, and add it to `SHELL_ASSETS` in `sw.js`. |
+| Change the maskable art | Keep the artwork inside the 80% safe circle — a 512px icon has a 204.8px safe radius around its centre. |
+
+To re-rasterise, render the SVG in a browser at the target size and save the result, then confirm the dimensions with the PNG `IHDR` chunk. The raster must be pixel-identical to the SVG, so never hand-edit one form and leave the other behind.
+
+---
+
 ## Release checklist
 
 - [ ] All verification suites pass.
 - [ ] The manual checklist in [Testing](testing.md) passes.
 - [ ] Any new `js/` file is in `SHELL_ASSETS`.
+- [ ] Any new icon is in `SHELL_ASSETS` and listed in `manifest.webmanifest`.
 - [ ] Changed assets have a matching `?v=` bump in every file that references them, and in `sw.js`.
 - [ ] `CACHE_NAME` and `sw.js?v=` are incremented if the worker changed.
 - [ ] `index.html` links only stylesheets that exist.
@@ -191,7 +206,6 @@ Tracked in more detail in [Features → Known gaps](features.md#known-gaps).
 | Notification checks are manual or on load | Low | By design — see [Offline & PWA](offline-pwa.md#notification-delivery-and-its-limits). |
 | Only one lead notification per window | Low | The spec describes a daily reminder during the window. |
 | The mobile layout uses a drawer, not a bottom bar | Low | The UX spec calls for a persistent bottom navigation. |
-| SVG-only manifest icons | Low | Some installers expect PNG rasters. |
 | The local profile is a privacy screen, not a vault | Medium | Anyone with device access and developer tools can read IndexedDB directly. It stops casual access only. |
 | Password recovery removes the profile | Medium | There is no mail server, so the only recovery path removes the password while keeping the data. |
 | `~$meNest_UI_UX_Design_Specification.docx` is untracked | Low | A Word lock file; add it to `.gitignore`. |

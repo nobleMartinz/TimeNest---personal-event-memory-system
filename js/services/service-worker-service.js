@@ -8,7 +8,7 @@ async function registerServiceWorker({ onUpdate, onStatus } = {}) {
     return null;
   }
 
-  const registration = await navigator.serviceWorker.register('./sw.js?v=10');
+  const registration = await navigator.serviceWorker.register('./sw.js?v=12');
   const reportStatus = () => onStatus?.({ supported: true, controlled: Boolean(navigator.serviceWorker.controller) });
   const offerUpdate = () => onUpdate?.(() => registration.waiting?.postMessage({ type: 'SKIP_WAITING' }));
 

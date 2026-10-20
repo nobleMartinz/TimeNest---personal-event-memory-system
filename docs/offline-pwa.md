@@ -24,27 +24,40 @@ TimeNest is installable and fully usable with no network connection. All data is
 
 | File | Size | Purpose |
 | --- | --- | --- |
-| `assets/icons/timenest-192.svg` | 192×192 | Any context, install prompt |
-| `assets/icons/timenest-512.svg` | 512×512 | Any context, maskable |
+| `assets/icons/timenest-192.png` | 192×192 | Any context, install prompt |
+| `assets/icons/timenest-512.png` | 512×512 | Any context, install prompt |
+| `assets/icons/timenest-maskable-512.png` | 512×512 | Maskable — full-bleed background, art inside the 80% safe zone |
+| `assets/icons/timenest-180.png` | 180×180 | iOS `apple-touch-icon` |
+| `assets/icons/timenest-192.svg` | 192×192 | Vector form of the "any" icon |
+| `assets/icons/timenest-512.svg` | 512×512 | Vector form of the "any" icon |
+| `assets/icons/timenest-maskable-512.svg` | 512×512 | Vector form of the maskable icon |
 
-Both are SVG: a teal (`#2d7567`) rounded square with a light "T" and a coral clock face. The 512 icon is declared `purpose: "any maskable"`.
+The artwork is a teal (`#2d7567`) rounded square with a light "T" and a coral clock face.
 
-> SVG manifest icons are supported by Chromium-based browsers. Some installers still expect PNG rasters; add PNG fallbacks if you target a broader device set.
+**Why both PNG and SVG.** The PNG rasters are the installable form: Android launchers, the Windows install flow, and iOS `apple-touch-icon` all expect a raster, and iOS ignores an SVG `apple-touch-icon` entirely. The SVGs are kept for crisp rendering where a platform does accept them, and both forms are listed in the manifest so the browser can pick.
+
+**The maskable variant is a separate file, not a re-tag of the "any" icon.** A maskable icon must fill the whole canvas with background — the platform applies its own circle, squircle, or rounded-square mask — and its artwork must sit inside a circle with a diameter of 80% of the icon, centred. The "any" icon has transparent corners and an art group that reaches 215px from the centre of a 512px canvas, so it would be clipped. The maskable file uses a full-bleed background and scales the art to 0.84, putting its farthest point 181px from the centre — 12% inside the 204.8px safe radius.
+
+> The PNGs are rasterised from the SVGs, so the two forms stay pixel-identical. Regenerate them whenever the SVGs change.
 
 ---
 
 ## Service worker
 
-`sw.js` — cache name `timenest-shell-v10`.
+`sw.js` — cache name `timenest-shell-v11`.
 
 ### Lifecycle
 
 | Event | Behaviour |
 | --- | --- |
-| `install` | Opens the cache and precaches the entire `SHELL_ASSETS` list with `cache.addAll`. |
+| `install` | Opens the cache and precaches the entire `SHELL_ASSETS` list. |
 | `activate` | Deletes every cache starting with `timenest-` that is not the current one, then calls `clients.claim()` so the worker controls the page immediately. |
 | `message` | Handles `SKIP_WAITING` by calling `self.skipWaiting()`. |
 | `fetch` | Serves requests according to the strategy below. |
+
+### Precaching
+
+Each asset is fetched with `cache: 'reload'`, which bypasses the HTTP cache, so the precached shell always holds the copy the server is currently serving rather than a stale HTTP-cached one. A single failed asset fails the install, which is the same guarantee `cache.addAll` gives.
 
 ### Precached shell
 
@@ -91,6 +104,11 @@ Both are SVG: a teal (`#2d7567`) rounded square with a light "T" and a coral clo
 ./js/services/auth-service.js
 ./assets/icons/timenest-192.svg
 ./assets/icons/timenest-512.svg
+./assets/icons/timenest-maskable-512.svg
+./assets/icons/timenest-192.png
+./assets/icons/timenest-512.png
+./assets/icons/timenest-maskable-512.png
+./assets/icons/timenest-180.png
 ```
 
 The sign-in and sign-up pages are precached, so **you can unlock TimeNest with no network connection**.
@@ -117,7 +135,7 @@ Non-GET requests are ignored entirely.
 
 ### Update flow
 
-`js/services/service-worker-service.js` registers `./sw.js?v=10` and watches for a new worker.
+`js/services/service-worker-service.js` registers `./sw.js?v=11` and watches for a new worker.
 
 1. A new service worker installs in the background.
 2. When it reaches the `installed` state and a controller already exists, `onUpdate` fires.
@@ -228,4 +246,4 @@ The reminder engine, date engine, and data model do not change.
 | Safari (iOS) | Share → *Add to Home Screen* |
 | Firefox (desktop) | No install prompt; the manifest and service worker still work |
 
-Installed, TimeNest launches in standalone mode with no browser chrome, using the theme colour `#2d7567` and the 512px icon.
+Installed, TimeNest launches in standalone mode with no browser chrome, using the theme colour `#2d7567` and the 512px icon. Android applies its own launcher mask, so it uses the maskable icon; iOS uses the 180px touch icon.

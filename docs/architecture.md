@@ -66,8 +66,13 @@ TimeNest/
 │
 ├── assets/
 │   └── icons/
-│       ├── timenest-192.svg
-│       ├── timenest-512.svg
+│       ├── timenest-192.png        192×192 install icon
+│       ├── timenest-512.png        512×512 install icon
+│       ├── timenest-maskable-512.png  512×512 maskable icon
+│       ├── timenest-180.png        180×180 iOS touch icon
+│       ├── timenest-192.svg        Vector "any" icon
+│       ├── timenest-512.svg        Vector "any" icon
+│       ├── timenest-maskable-512.svg  Vector maskable icon
 │       └── .gitkeep
 │
 ├── css/

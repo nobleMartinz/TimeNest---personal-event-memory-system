@@ -5,7 +5,7 @@ import { initEventsPage } from './pages/events-page.js?v=3';
 import { initCalendarPage } from './pages/calendar-page.js?v=2';
 import { applySavedTheme, initSettingsPage } from './pages/settings-page.js?v=2';
 import { checkAndNotifyReminders } from './services/notification-service.js';
-import { registerServiceWorker } from './services/service-worker-service.js';
+import { registerServiceWorker } from './services/service-worker-service.js?v=2';
 import { getAuthState } from './services/auth-service.js';
 
 const sidebar = document.querySelector('[data-sidebar]');
@@ -25,6 +25,8 @@ const connectionStatus = document.querySelector('#connection-status');
 const connectionMessage = document.querySelector('[data-connection-message]');
 const updateNotice = document.querySelector('#update-notice');
 const applyUpdateButton = document.querySelector('#apply-update');
+
+const AUTH_PAGES = ['login.html', 'signup.html'];
 
 function renderConnectionStatus() {
   const offline = !navigator.onLine;
@@ -166,6 +168,15 @@ async function bootstrap() {
   }
 
   if (authState.hasAccount && !authState.isAuthenticated) {
+    // An installed app opens in its own browsing context, so the session
+    // kept in `sessionStorage` is not visible here and the sign-in screen is
+    // needed. If the shell was ever served for a sign-in URL, go to the plain
+    // sign-in page instead of the one carrying `?next=`, which is always
+    // cached and therefore cannot send the app round in circles.
+    if (AUTH_PAGES.some((page) => window.location.pathname.endsWith(page))) {
+      window.location.replace('./login.html');
+      return;
+    }
     const next = encodeURIComponent(window.location.hash || '#dashboard');
     window.location.replace(`./login.html?next=${next}`);
     return;

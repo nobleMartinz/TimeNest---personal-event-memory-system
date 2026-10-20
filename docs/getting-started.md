@@ -76,14 +76,16 @@ Full detail in [Authentication](authentication.md).
 
 ## 4. Install as an app
 
-TimeNest ships a web app manifest (`manifest.webmanifest`).
+TimeNest ships a web app manifest (`manifest.webmanifest`) and a service worker, so it installs as a standalone app and launches with no browser chrome.
 
 - **Chrome / Edge:** address bar → install icon → *Install TimeNest*.
 - **Android Chrome:** menu → *Add to Home screen*.
 - **iOS Safari:** Share → *Add to Home Screen*.
 - **Desktop Firefox:** does not support install prompts; it can still use the manifest and service worker.
 
-Installed, it launches standalone with the `timenest-512.svg` icon and the `#2d7567` theme colour.
+Installed, it launches standalone with the `timenest-512.png` icon and the `#2d7567` theme colour. Android uses the maskable icon, so the artwork is never clipped by the launcher's shape mask, and iOS uses the `timenest-180.png` touch icon.
+
+> **Installation requires a secure context.** `http://localhost` counts as secure, so a local server is enough. Any other host must use HTTPS, or the browser will refuse to register the service worker and the app will not be installable.
 
 ---
 
