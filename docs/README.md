@@ -1,6 +1,6 @@
 # TimeNest Documentation
 
-Documentation for **TimeNest** — a local-first, offline-capable Progressive Web App for personal reminders, recurring activities, diary entries, and a calendar view.
+Documentation for **TimeNest** — a local-first, offline-capable Progressive Web App for personal reminders, recurring activities, diary entries, events, and a calendar view.
 
 > **TimeNest is a personal event-memory system.** It answers three questions at a glance: *What is due? When is it due? What happened before?*
 
@@ -17,6 +17,7 @@ All data lives in the browser on the user's device. There is no backend, no acco
 | [Data Model](data-model.md) | IndexedDB schema, record shapes, settings, import/export format. |
 | [Authentication](authentication.md) | Local profiles, password hashing, sessions, the app gate. |
 | [Features](features.md) | Every user-facing feature, screen by screen. |
+| [Events](events.md) | The Events feature: the record shape, past/upcoming timing, cancellation, and the screen. |
 | [API Reference](api-reference.md) | Public functions exported by each service module. |
 | [Design System](design-system.md) | CSS layers, design tokens, components, responsive breakpoints. |
 | [Offline & PWA](offline-pwa.md) | Service worker caching strategy, manifest, notifications. |
@@ -52,6 +53,7 @@ http://127.0.0.1:4173/login.html          # sign in
 http://127.0.0.1:4173/repair.html         # clear stale cache / service worker
 http://127.0.0.1:4173/tests/date-verification.html
 http://127.0.0.1:4173/tests/database-verification.html
+http://127.0.0.1:4173/tests/event-verification.html
 http://127.0.0.1:4173/tests/auth-verification.html
 http://127.0.0.1:4173/tests/contrast-verification.html
 http://127.0.0.1:4173/tests/offline-verification.html

@@ -102,7 +102,7 @@ This applies equally to the auth pages: `login.html`, `signup.html`, `css/auth.c
 
 ### 5. Verify
 
-Run the three verification suites and walk the manual checklist in [Testing](testing.md).
+Run the verification suites and walk the manual checklist in [Testing](testing.md).
 
 ---
 
@@ -112,13 +112,15 @@ The service worker caches aggressively, so a changed file can be served stale. T
 
 | Counter | Where | Current value |
 | --- | --- | --- |
-| `CACHE_NAME` | `sw.js:1` | `timenest-shell-v9` |
-| `sw.js?v=` | `js/services/service-worker-service.js:11` | `8` |
-| Asset `?v=` | `index.html` and `sw.js` | `variables.css?v=2`, `base.css?v=2`, `layout.css?v=4`, `components.css?v=2`, `auth.css?v=2`, `dashboard.css?v=1`, `reminders.css?v=4`, `calendar.css?v=1`, `responsive.css?v=4`, `app.js?v=6`, `settings-page.js?v=2`, `auth-page.js?v=2`, `login-entry.js?v=2`, `signup-entry.js?v=2` |
+| `CACHE_NAME` | `sw.js:1` | `timenest-shell-v10` |
+| `sw.js?v=` | `js/services/service-worker-service.js:11` | `10` |
+| Asset `?v=` | `index.html`, module import specifiers, and `sw.js` | `variables.css?v=2`, `base.css?v=2`, `layout.css?v=4`, `components.css?v=2`, `auth.css?v=2`, `dashboard.css?v=1`, `reminders.css?v=4`, `events.css?v=1`, `calendar.css?v=1`, `responsive.css?v=4`, `app.js?v=8`, `database.js?v=2`, `storage.js?v=2`, `dashboard-page.js?v=2`, `events-page.js?v=3`, `calendar-page.js?v=2`, `event-service.js?v=1`, `data-transfer-service.js?v=2`, `settings-page.js?v=2`, `auth-page.js?v=2`, `login-entry.js?v=2`, `signup-entry.js?v=2` |
 
 ### Bumping
 
-**To ship changed content**, bump the `?v=` query on the changed file in **both** `index.html` and `sw.js` — they must match, or the fetch handler will cache two separate copies of the same file.
+**To ship changed content**, bump the `?v=` query on the changed file everywhere it is referenced — the HTML that links it, every module that imports it, and `sw.js`. They must all match, or the fetch handler will cache two separate copies of the same file and the offline suite will report a missing asset.
+
+A stylesheet is referenced from `index.html`. A JavaScript module is referenced from its importer, so changing `js/data/storage.js` means bumping `?v=` on the `storage.js` import in every module that uses it.
 
 **To ship a new service worker**, increment `CACHE_NAME` and the `sw.js?v=` parameter together. A new `CACHE_NAME` triggers the `activate` handler, which deletes every older `timenest-*` cache.
 
@@ -128,10 +130,10 @@ The service worker caches aggressively, so a changed file can be served stale. T
 
 ## Release checklist
 
-- [ ] All three verification suites pass.
+- [ ] All verification suites pass.
 - [ ] The manual checklist in [Testing](testing.md) passes.
 - [ ] Any new `js/` file is in `SHELL_ASSETS`.
-- [ ] Changed assets have a matching `?v=` bump in `index.html` and `sw.js`.
+- [ ] Changed assets have a matching `?v=` bump in every file that references them, and in `sw.js`.
 - [ ] `CACHE_NAME` and `sw.js?v=` are incremented if the worker changed.
 - [ ] `index.html` links only stylesheets that exist.
 - [ ] No console errors on load or during any user flow.
@@ -183,6 +185,7 @@ Tracked in more detail in [Features → Known gaps](features.md#known-gaps).
 | --- | --- | --- |
 | Reminder search is not implemented | Medium | `listReminders()` has no `query` option; the reminders view has no search field. |
 | Tag fields are not in any form | Low | The data model carries `tags`; no UI writes them. |
+| Events never repeat | By design | A repeating obligation is a reminder; a repeating occasion is one event per date. See [Events](events.md). |
 | The "Due today" count has no list panel | Low | The dashboard shows a count but no dedicated list. |
 | The add-reminder confirmation omits the computed dates | Low | The UX spec asks for the next due date and reminder start date in the confirmation. |
 | Notification checks are manual or on load | Low | By design — see [Offline & PWA](offline-pwa.md#notification-delivery-and-its-limits). |

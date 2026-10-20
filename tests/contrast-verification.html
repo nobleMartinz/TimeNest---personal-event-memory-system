@@ -139,7 +139,7 @@
     }
 
     const THEMES = ['light', 'dark'];
-    const ROUTES = ['#dashboard', '#reminders', '#diary', '#calendar', '#settings'];
+    const ROUTES = ['#dashboard', '#reminders', '#diary', '#events', '#calendar', '#settings'];
     let failureCount = 0;
     let checkCount = 0;
 
@@ -159,7 +159,9 @@
     // The authentication service is imported from the app so the probe can sign
     // in, audit the protected screens, and clean up after itself.
     const auth = await import('../js/services/auth-service.js');
+    const eventService = await import('../js/services/event-service.js');
     let temporaryAccount = false;
+    let seededEventIds = [];
 
     try {
       if (await auth.hasAccount()) {
@@ -176,6 +178,31 @@
       }
     } catch (error) {
       addResult(`NOTE  could not prepare the probe account: ${error.message}`);
+    }
+
+    // Event cards only render when records exist, so a couple of probe events
+    // are seeded to cover the card, pill, and muted text styles.
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const probeEvents = [
+        await eventService.createEvent({
+          title: 'Contrast probe event',
+          date: today,
+          time: '09:30',
+          endTime: '11:00',
+          category: 'Travel',
+          location: 'Lisbon',
+          notes: 'Checking contrast on the event card.'
+        }),
+        await eventService.createEvent({
+          title: 'Contrast probe past event',
+          date: '2020-01-05',
+          category: 'Wellness'
+        })
+      ];
+      seededEventIds = probeEvents.map((event) => event.id);
+    } catch (error) {
+      addResult(`NOTE  could not seed probe events: ${error.message}`);
     }
 
     try {
@@ -207,6 +234,14 @@
     } catch (error) {
       failureCount += 1;
       addFailure(`FAIL  the audit could not finish: ${error.message}`);
+    }
+
+    for (const id of seededEventIds) {
+      try {
+        await eventService.deleteEvent(id);
+      } catch (error) {
+        addFailure(`FAIL  the probe event ${id} could not be removed: ${error.message}`);
+      }
     }
 
     if (temporaryAccount) {

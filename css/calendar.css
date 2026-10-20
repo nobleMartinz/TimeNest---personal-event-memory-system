@@ -113,6 +113,10 @@
   background: var(--color-accent);
 }
 
+.calendar-marker--event {
+  background: var(--color-info);
+}
+
 .calendar-selection {
   margin-top: var(--space-5);
 }
@@ -137,6 +141,10 @@
 
 .calendar-item--diary {
   border-left-color: var(--color-coral);
+}
+
+.calendar-item--event {
+  border-left-color: var(--color-info);
 }
 
 .calendar-item span {

@@ -1,4 +1,4 @@
-import { STORE_NAMES, requestToPromise, withStore } from '../data/database.js';
+import { STORE_NAMES, requestToPromise, withStore } from '../data/database.js?v=2';
 
 const ACCOUNT_ID_PREFIX = 'account';
 const SESSION_ID_PREFIX = 'session';

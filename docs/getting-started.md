@@ -53,7 +53,7 @@ On load, TimeNest:
 4. Runs a reminder notification check.
 5. Shows the dashboard with today's date and empty states.
 
-Create your first reminder with **+ Add reminder**, or a memory with **+ Add diary entry**.
+Create your first reminder with **+ Add reminder**, a memory with **+ Add diary entry**, or a dated memory with **+ Add event**.
 
 ---
 
@@ -126,6 +126,7 @@ Five self-contained HTML pages check the system in the browser. See [Testing](te
 | --- | --- |
 | `tests/date-verification.html` | Date parsing, recurrence maths, leap years, month ends. |
 | `tests/database-verification.html` | IndexedDB CRUD, settings persistence, import validation. |
+| `tests/event-verification.html` | Event CRUD, validation, past/upcoming timing, cancellation. |
 | `tests/auth-verification.html` | Password hashing, account rules, session lifecycle. |
 | `tests/contrast-verification.html` | WCAG AA text contrast on every screen in both themes. |
 | `tests/offline-verification.html` | Service worker control and shell precaching. |
@@ -167,7 +168,7 @@ Expected behaviour. A backgrounded tab is throttled by the browser. Use **Check 
 
 Everything is stored in the browser profile on this device:
 
-- **IndexedDB database** `timenest-local` — reminders, diary entries, settings, notification history, and the optional local profile.
+- **IndexedDB database** `timenest-local` — reminders, diary entries, events, settings, notification history, and the optional local profile.
 - **Cache Storage** — the app shell, for offline use.
 
 There is no server and no sync. Clearing site data in the browser erases everything — export a JSON backup from **Settings → Export JSON** first.

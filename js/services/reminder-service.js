@@ -1,4 +1,4 @@
-import { reminderRepository } from '../data/storage.js';
+import { reminderRepository } from '../data/storage.js?v=2';
 import {
   RECURRENCE_TYPES,
   calculateNextOccurrence,

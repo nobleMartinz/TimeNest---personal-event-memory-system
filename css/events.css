@@ -1,0 +1,143 @@
+.events-toolbar {
+  align-items: center;
+  background: var(--color-surface-inset);
+  border: var(--border-thin);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+}
+
+.events-toolbar .form-control {
+  min-height: 44px;
+}
+
+.events-filter {
+  max-width: 220px;
+}
+
+.events-search {
+  flex: 1 1 220px;
+  max-width: 320px;
+}
+
+.events-category-filter {
+  max-width: 200px;
+}
+
+.event-list {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.event-card {
+  align-items: center;
+  background: var(--color-surface);
+  border: var(--border-thin);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: minmax(0, 1fr) minmax(190px, auto) auto;
+  padding: var(--space-5);
+}
+
+.event-card--cancelled {
+  opacity: 0.72;
+}
+
+.event-card__main {
+  min-width: 0;
+}
+
+.event-card__title-row {
+  align-items: center;
+  display: flex;
+  gap: var(--space-3);
+}
+
+.event-card__title-row h3 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.event-card__marker {
+  background: var(--color-info);
+  border-radius: 3px;
+  flex: 0 0 auto;
+  height: 18px;
+  width: 5px;
+}
+
+.event-card__meta,
+.event-card__time,
+.event-card__location,
+.event-card__notes {
+  color: var(--color-ink-muted);
+  font-size: var(--text-sm);
+}
+
+.event-card__meta {
+  margin-top: var(--space-2);
+}
+
+.event-card__location {
+  margin-top: var(--space-1);
+}
+
+.event-card__notes {
+  margin-top: var(--space-3);
+  max-width: 620px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.event-card__date {
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+
+.event-card__date strong {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 500;
+}
+
+.event-card__actions {
+  align-items: center;
+  display: flex;
+  gap: var(--space-2);
+}
+
+@media (max-width: 720px) {
+  .events-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .events-filter,
+  .events-search,
+  .events-category-filter {
+    max-width: none;
+  }
+
+  .event-card {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .event-card__date {
+    align-items: flex-start;
+  }
+
+  .event-card__actions {
+    justify-content: space-between;
+  }
+}

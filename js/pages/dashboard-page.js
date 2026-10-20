@@ -1,5 +1,6 @@
-import { diaryRepository } from '../data/storage.js';
+import { diaryRepository } from '../data/storage.js?v=2';
 import { completeReminder, listReminders } from '../services/reminder-service.js';
+import { listEvents } from '../services/event-service.js?v=1';
 import { differenceInDays, normalizeDate } from '../services/date-service.js';
 
 function escapeHtml(value) {
@@ -28,6 +29,11 @@ function diaryRow(entry) {
   return `<article class="dashboard-row dashboard-row--diary"><div><strong>${escapeHtml(entry.title)}</strong><span>${escapeHtml(entry.content || entry.category || 'Diary entry')}</span></div><time datetime="${escapeHtml(entry.date)}">${escapeHtml(formatDate(entry.date))}</time></article>`;
 }
 
+function eventRow(event) {
+  const detail = [event.time, event.location, event.category].filter(Boolean).join(' · ');
+  return `<article class="dashboard-row dashboard-row--event"><div><strong>${escapeHtml(event.title)}</strong><span>${escapeHtml(detail || 'Event')}</span></div><time datetime="${escapeHtml(event.date)}">${escapeHtml(formatDate(event.date))}</time></article>`;
+}
+
 function completedRow(item) {
   return `<article class="dashboard-row"><div><strong>${escapeHtml(item.title)}</strong><span>Completed ${escapeHtml(formatDate(item.completedAt.slice(0, 10)))}</span></div><time datetime="${escapeHtml(item.dueDate)}">Due ${escapeHtml(formatDate(item.dueDate))}</time></article>`;
 }
@@ -37,10 +43,13 @@ function initDashboardPage() {
   const todayValue = document.querySelector('[data-dashboard-value="today"]');
   const upcomingValue = document.querySelector('[data-dashboard-value="upcoming"]');
   const overdueValue = document.querySelector('[data-dashboard-value="overdue"]');
+  const eventsValue = document.querySelector('[data-dashboard-value="events"]');
+  const eventsNote = document.querySelector('[data-dashboard-events-note]');
   const upcomingList = document.querySelector('#upcoming-reminders-list');
   const overdueList = document.querySelector('#overdue-reminders-list');
   const completedList = document.querySelector('#recent-completed-list');
   const diaryList = document.querySelector('#recent-diary-list');
+  const eventsList = document.querySelector('#upcoming-events-list');
   const toastRegion = document.querySelector('#toast-region');
 
   function showToast(message, type = 'success') {
@@ -68,11 +77,14 @@ function initDashboardPage() {
     const diaryEntries = (await diaryRepository.getAll())
       .sort((first, second) => second.date.localeCompare(first.date) || second.createdAt.localeCompare(first.createdAt))
       .slice(0, 4);
+    const upcomingEvents = (await listEvents({ timing: 'upcoming' })).slice(0, 4);
 
     dashboardDate.textContent = new Intl.DateTimeFormat(undefined, { dateStyle: 'full' }).format(new Date(`${today}T00:00:00`));
     todayValue.textContent = todayReminders.length;
     upcomingValue.textContent = upcomingReminders.length;
     overdueValue.textContent = overdueReminders.length;
+    eventsValue.textContent = upcomingEvents.length;
+    eventsNote.textContent = upcomingEvents.length ? 'Coming up' : 'Nothing scheduled';
     todayValue.nextElementSibling.textContent = todayReminders.length ? 'Needs your attention' : 'Nothing pressing today';
     upcomingValue.nextElementSibling.textContent = 'In the next 7 days';
     overdueValue.nextElementSibling.textContent = overdueReminders.length ? 'Needs a response' : 'All caught up';
@@ -89,6 +101,9 @@ function initDashboardPage() {
     diaryList.innerHTML = diaryEntries.length
       ? diaryEntries.map(diaryRow).join('')
       : emptyState('Leave yourself a note', 'Capture a moment, a detail, or something you will be glad to remember.', '<button class="button button--ghost" type="button" data-open-diary-form>Write an entry <span aria-hidden="true">→</span></button>');
+    eventsList.innerHTML = upcomingEvents.length
+      ? upcomingEvents.map(eventRow).join('')
+      : emptyState('Nothing on the horizon', 'Add an event for something you want to remember, whether it has happened or is still ahead.', '<button class="button button--secondary" type="button" data-open-event-form>Add event</button>');
   }
 
   document.addEventListener('click', async (event) => {

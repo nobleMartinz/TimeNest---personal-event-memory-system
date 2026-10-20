@@ -149,6 +149,51 @@ Requires `title` and `content`; normalises `date` through `date-service.js`; def
 
 ---
 
+## `js/services/event-service.js`
+
+Dated records for things that happened and things still to come. Events never repeat. See [Events](events.md).
+
+### Constants
+
+| Export | Type | Value |
+| --- | --- | --- |
+| `EVENT_TIMING` | `object` | `{ past: 'past', today: 'today', upcoming: 'upcoming' }` |
+
+### Functions
+
+| Function | Signature | Returns |
+| --- | --- | --- |
+| `listEvents` | `({ timing = 'all', query = '', category = '', includeCancelled = false } = {})` | `Promise<Event[]>` filtered and sorted. |
+| `getEvent` | `(id)` | `Promise<Event \| undefined>` |
+| `createEvent` | `(input)` | `Promise<Event>` — stamps `createdAt` and `updatedAt`. |
+| `updateEvent` | `(id, input)` | `Promise<Event>` — preserves `createdAt`, refreshes `updatedAt`. Throws if the event does not exist. |
+| `deleteEvent` | `(id)` | `Promise<void>` |
+| `cancelEvent` | `(id)` | `Promise<Event>` — sets `cancelled: true`. |
+| `restoreEvent` | `(id)` | `Promise<Event>` — sets `cancelled: false`. |
+| `setEventCancelled` | `(id, cancelled)` | `Promise<Event>` — the shared implementation of cancel and restore. |
+| `getEventTiming` | `(event, today = normalizeDate(new Date()))` | `'past' \| 'today' \| 'upcoming'` — derived from the date, never stored. |
+| `isEventUpcoming` | `(event, today = normalizeDate(new Date()))` | `boolean` |
+| `normalizeEventInput` | `(input)` | `object` — exported for the import validator. |
+
+### `listEvents` options
+
+| Option | Behaviour |
+| --- | --- |
+| `timing` | `'upcoming'` keeps today and future events, `'past'` keeps events before today, `'all'` keeps everything. |
+| `query` | Case-insensitive substring match across `title`, `category`, `location`, `notes`, and `tags`. |
+| `category` | Exact match. |
+| `includeCancelled` | Cancelled events are excluded unless this is `true`. |
+
+Events are sorted today first, then by ascending date, with past events last and newest-first.
+
+### `normalizeEventInput(input)`
+
+Requires `title` and `date`; normalises `date` and `endDate` through `date-service.js`; validates `HH:MM` times; defaults `category` to `General`; coerces `tags` to an array.
+
+Throws `Error` when the title is empty, the date is invalid, the end date precedes the start date, a time is malformed, or the end time precedes the start time.
+
+---
+
 ## `js/services/notification-service.js`
 
 ### Constants
@@ -297,9 +342,9 @@ Local device profiles, PBKDF2 password hashing, and sessions. See [Authenticatio
 | Function | Signature | Returns |
 | --- | --- | --- |
 | `createExportDocument` | `()` | `Promise<{ version, exportedAt, data }>` |
-| `validateImportDocument` | `(document)` | `{ reminders, diaryEntries, settings }` — throws on any validation failure. |
+| `validateImportDocument` | `(document)` | `{ reminders, diaryEntries, events, settings }` — throws on any validation failure. |
 | `importDocument` | `(document, mode)` | `Promise<{ imported, skipped }>` |
-| `clearAllData` | `()` | `Promise<void>` — empties reminders, diary entries, notification history; resets settings. |
+| `clearAllData` | `()` | `Promise<void>` — empties reminders, diary entries, events, notification history; resets settings. |
 
 `importDocument` throws `Error` with a `Import failed: ` prefix for an invalid mode or any validation problem. `skipped` counts records whose `id` already existed in `merge` mode.
 
@@ -319,7 +364,7 @@ Local device profiles, PBKDF2 password hashing, and sessions. See [Authenticatio
 | `onStatus` | `{ supported, controlled }` |
 | `onUpdate` | `applyUpdate` — a function that posts `SKIP_WAITING` to the waiting worker. |
 
-Registers `./sw.js?v=9`. Reloads the page automatically on `controllerchange`.
+Registers `./sw.js?v=10`. Reloads the page automatically on `controllerchange`.
 
 ---
 
@@ -328,9 +373,9 @@ Registers `./sw.js?v=9`. Reloads the page automatically on `controllerchange`.
 | Export | Signature | Purpose |
 | --- | --- | --- |
 | `DATABASE_NAME` | `'timenest-local'` | Database name. |
-| `DATABASE_VERSION` | `1` | Schema version. |
+| `DATABASE_VERSION` | `3` | Schema version. |
 | `DatabaseError` | `class` | Error with `operation`, `storeName`, and `cause`. |
-| `STORE_NAMES` | `obsect` | `{ reminders, diaryEntries, settings, notificationHistory, accounts, sessions }` |
+| `STORE_NAMES` | `obsect` | `{ reminders, diaryEntries, events, settings, notificationHistory, accounts, sessions }` |
 | `getDatabase` | `()` | `Promise<IDBDatabase>` — memoised; resects if IndexedDB is unavailable. |
 | `requestToPromise` | `(request, operation, storeName)` | `Promise<any>` — resolves an IDBRequest. |
 | `withStore` | `(storeName, mode, operation, callback)` | Runs a callback inside a transaction and resolves after the transaction completes. |
@@ -349,7 +394,7 @@ const records = await withStore(STORE_NAMES.reminders, 'readonly', 'getAll', (st
 
 ### Repositories
 
-`reminderRepository`, `diaryRepository`, and `notificationHistoryRepository` share one factory.
+`reminderRepository`, `diaryRepository`, `eventRepository`, and `notificationHistoryRepository` share one factory.
 
 | Method | Signature | Returns |
 | --- | --- | --- |
@@ -360,7 +405,7 @@ const records = await withStore(STORE_NAMES.reminders, 'readonly', 'getAll', (st
 | `remove` | `(id)` | `Promise<void>` |
 | `clear` | `()` | `Promise<void>` |
 
-Also exported: `repositories` — a frozen obsect grouping the three repositories.
+Also exported: `repositories` — a frozen obsect grouping the four repositories.
 
 ### Settings
 
@@ -382,6 +427,7 @@ Each page module exports an initialiser that returns a small controller obsect.
 | `dashboard-page.js` | `initDashboardPage()` | `{ refresh }` |
 | `reminders-page.js` | `initRemindersPage()` | `{ refresh, openForm, page }` |
 | `diary-page.js` | `initDiaryPage()` | `{ refresh, openForm, page }` |
+| `events-page.js` | `initEventsPage()` | `{ refresh, openForm, page }` |
 | `calendar-page.js` | `initCalendarPage()` | `{ refresh, page }` |
 | `settings-page.js` | `initSettingsPage()` | `{ refresh, page }` |
 | `settings-page.js` | `applyTheme(theme)` | Applies a theme to `<html>` immediately. |
@@ -402,7 +448,7 @@ Each page module exports an initialiser that returns a small controller obsect.
 Not a module with exports — the application entry point. It:
 
 - Queries the shell elements.
-- Creates the five page controllers.
+- Creates the six page controllers.
 - Manages the mobile drawer state and focus trap.
 - Routes on `hashchange`.
 - Listens for `timenest:data-changed` and refreshes every page.

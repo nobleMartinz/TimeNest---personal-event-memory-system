@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TimeNest event verification</title>
+  <style>
+    body { background: #f7f8f5; color: #1d2a24; font: 16px/1.5 system-ui, sans-serif; margin: 0; padding: 2rem; }
+    main { background: #fff; border: 1px solid #e0e6df; border-radius: 12px; margin: auto; max-width: 720px; padding: 2rem; }
+    .pass { color: #1f5a4f; }
+    .fail { color: #b64d43; }
+    li { margin-block: 0.4rem; }
+    code { background: #eef1ec; border-radius: 4px; padding: 0.15rem 0.3rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>TimeNest event verification</h1>
+    <p id="status">Running event checks...</p>
+    <ul id="results"></ul>
+  </main>
+  <script type="module">
+    import { runEventVerification } from '../js/services/event-verification.js';
+
+    const status = document.querySelector('#status');
+    const results = document.querySelector('#results');
+
+    try {
+      const report = await runEventVerification();
+      status.className = 'pass';
+      status.textContent = `PASS: ${report.checks.length} event checks passed.`;
+      report.checks.forEach((check) => {
+        const item = document.createElement('li');
+        item.textContent = check;
+        results.append(item);
+      });
+    } catch (error) {
+      status.className = 'fail';
+      status.textContent = `FAIL: ${error.message}`;
+      console.error(error);
+    }
+  </script>
+</body>
+</html>

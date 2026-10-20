@@ -1,12 +1,14 @@
 import {
   DEFAULT_SETTINGS,
   diaryRepository,
+  eventRepository,
   getSettings,
   notificationHistoryRepository,
   reminderRepository,
   saveSettings
-} from '../data/storage.js';
+} from '../data/storage.js?v=2';
 import { normalizeDiaryInput } from './diary-service.js';
+import { normalizeEventInput } from './event-service.js?v=1';
 import { normalizeReminderInput } from './reminder-service.js';
 
 const EXPORT_VERSION = 1;
@@ -88,42 +90,70 @@ function normalizeImportedDiary(record) {
   }
 }
 
+function normalizeImportedEvent(record) {
+  const id = requireId(record, 'event');
+  try {
+    return {
+      ...normalizeEventInput(record),
+      id,
+      createdAt: typeof record.createdAt === 'string' ? record.createdAt : new Date().toISOString(),
+      updatedAt: typeof record.updatedAt === 'string' ? record.updatedAt : new Date().toISOString()
+    };
+  } catch (error) {
+    throw importError(`event "${id}" is invalid: ${error.message}`);
+  }
+}
+
 function validateImportDocument(document) {
   if (!isRecord(document) || document.version !== EXPORT_VERSION || !isRecord(document.data)) {
     throw importError(`expected a TimeNest export with version ${EXPORT_VERSION}.`);
   }
-  const { reminders, diaryEntries, settings } = document.data;
+  const { reminders, diaryEntries, events = [], settings } = document.data;
   if (!Array.isArray(reminders) || !Array.isArray(diaryEntries)) {
     throw importError('reminders and diaryEntries must be arrays.');
   }
+  if (!Array.isArray(events)) {
+    throw importError('events must be an array.');
+  }
   verifyUniqueIds(reminders, 'reminder');
   verifyUniqueIds(diaryEntries, 'diary entry');
+  verifyUniqueIds(events, 'event');
   return {
     reminders: reminders.map(normalizeImportedReminder),
     diaryEntries: diaryEntries.map(normalizeImportedDiary),
+    events: events.map(normalizeImportedEvent),
     settings: normalizeSettings(settings)
   };
 }
 
 async function createExportDocument() {
-  const [reminders, diaryEntries, settings] = await Promise.all([
-    reminderRepository.getAll(), diaryRepository.getAll(), getSettings()
+  const [reminders, diaryEntries, events, settings] = await Promise.all([
+    reminderRepository.getAll(), diaryRepository.getAll(), eventRepository.getAll(), getSettings()
   ]);
-  return { version: EXPORT_VERSION, exportedAt: new Date().toISOString(), data: { reminders, diaryEntries, settings } };
+  return { version: EXPORT_VERSION, exportedAt: new Date().toISOString(), data: { reminders, diaryEntries, events, settings } };
 }
 
 async function importDocument(document, mode) {
   if (!Object.values(IMPORT_MODES).includes(mode)) throw importError('choose merge or replace.');
   const imported = validateImportDocument(document);
-  const [existingReminders, existingEntries] = await Promise.all([reminderRepository.getAll(), diaryRepository.getAll()]);
+  const [existingReminders, existingEntries, existingEvents] = await Promise.all([
+    reminderRepository.getAll(), diaryRepository.getAll(), eventRepository.getAll()
+  ]);
   const reminderIds = new Set(existingReminders.map((record) => record.id));
   const diaryIds = new Set(existingEntries.map((record) => record.id));
+  const eventIds = new Set(existingEvents.map((record) => record.id));
   let skipped = 0;
 
   if (mode === IMPORT_MODES.replace) {
-    await Promise.all([reminderRepository.clear(), diaryRepository.clear(), notificationHistoryRepository.clear()]);
+    await Promise.all([
+      reminderRepository.clear(),
+      diaryRepository.clear(),
+      eventRepository.clear(),
+      notificationHistoryRepository.clear()
+    ]);
     reminderIds.clear();
     diaryIds.clear();
+    eventIds.clear();
   }
 
   for (const reminder of imported.reminders) {
@@ -136,12 +166,23 @@ async function importDocument(document, mode) {
     await diaryRepository.add(entry);
     diaryIds.add(entry.id);
   }
+  for (const event of imported.events) {
+    if (eventIds.has(event.id)) { skipped += 1; continue; }
+    await eventRepository.add(event);
+    eventIds.add(event.id);
+  }
   await saveSettings(imported.settings);
-  return { imported: imported.reminders.length + imported.diaryEntries.length - skipped, skipped };
+  const total = imported.reminders.length + imported.diaryEntries.length + imported.events.length;
+  return { imported: total - skipped, skipped };
 }
 
 async function clearAllData() {
-  await Promise.all([reminderRepository.clear(), diaryRepository.clear(), notificationHistoryRepository.clear()]);
+  await Promise.all([
+    reminderRepository.clear(),
+    diaryRepository.clear(),
+    eventRepository.clear(),
+    notificationHistoryRepository.clear()
+  ]);
   await saveSettings(DEFAULT_SETTINGS);
 }
 

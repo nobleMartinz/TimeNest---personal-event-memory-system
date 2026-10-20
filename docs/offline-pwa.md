@@ -35,7 +35,7 @@ Both are SVG: a teal (`#2d7567`) rounded square with a light "T" and a coral clo
 
 ## Service worker
 
-`sw.js` — cache name `timenest-shell-v9`.
+`sw.js` — cache name `timenest-shell-v10`.
 
 ### Lifecycle
 
@@ -65,16 +65,18 @@ Both are SVG: a teal (`#2d7567`) rounded square with a light "T" and a coral clo
 ./css/dashboard.css?v=1
 ./css/reminders.css?v=4
 ./css/diary.css
+./css/events.css?v=1
 ./css/calendar.css?v=1
 ./css/settings.css
 ./css/responsive.css?v=4
-./js/app.js?v=6
-./js/data/database.js
-./js/data/storage.js
-./js/pages/dashboard-page.js
+./js/app.js?v=8
+./js/data/database.js?v=2
+./js/data/storage.js?v=2
+./js/pages/dashboard-page.js?v=2
 ./js/pages/reminders-page.js
 ./js/pages/diary-page.js
-./js/pages/calendar-page.js
+./js/pages/events-page.js?v=3
+./js/pages/calendar-page.js?v=2
 ./js/pages/settings-page.js?v=2
 ./js/pages/auth-page.js?v=2
 ./js/pages/login-entry.js?v=2
@@ -82,8 +84,9 @@ Both are SVG: a teal (`#2d7567`) rounded square with a light "T" and a coral clo
 ./js/services/date-service.js
 ./js/services/reminder-service.js
 ./js/services/diary-service.js
+./js/services/event-service.js?v=1
 ./js/services/notification-service.js
-./js/services/data-transfer-service.js
+./js/services/data-transfer-service.js?v=2
 ./js/services/service-worker-service.js
 ./js/services/auth-service.js
 ./assets/icons/timenest-192.svg
@@ -114,11 +117,11 @@ Non-GET requests are ignored entirely.
 
 ### Update flow
 
-`js/services/service-worker-service.js` registers `./sw.js?v=9` and watches for a new worker.
+`js/services/service-worker-service.js` registers `./sw.js?v=10` and watches for a new worker.
 
 1. A new service worker installs in the background.
 2. When it reaches the `installed` state and a controller already exists, `onUpdate` fires.
-3. `js/app.js:145` reveals the **update notice** banner: *"A TimeNest update is ready."* with a **Reload** button.
+3. `js/app.js:152` reveals the **update notice** banner: *"A TimeNest update is ready."* with a **Reload** button.
 4. Clicking **Reload** posts `SKIP_WAITING` to the waiting worker.
 5. `skipWaiting()` triggers `controllerchange`, and `js/services/service-worker-service.js:24` reloads the page.
 
@@ -137,7 +140,7 @@ The app also sets `document.documentElement.dataset.offlineReady` to `"true"` or
 3. Deletes every cache whose name starts with `timenest-`.
 4. Redirects to `./?repaired=1#dashboard`.
 
-**What it does not do:** touch IndexedDB. Your reminders, diary entries, and settings are untouched.
+**What it does not do:** touch IndexedDB. Your reminders, diary entries, events, and settings are untouched.
 
 **When to use it:** after editing files and seeing stale content, or when the app behaves inconsistently across reloads.
 
@@ -150,6 +153,7 @@ The app also sets `document.documentElement.dataset.offlineReady` to `"true"` or
 | Dashboard | Yes | Reads from IndexedDB. |
 | Reminders (all CRUD) | Yes | |
 | Diary (all CRUD) | Yes | |
+| Events (all CRUD, cancel, restore, filter, search) | Yes | |
 | Calendar | Yes | |
 | Settings, themes, preferences | Yes | |
 | Sign in and sign up | Yes | Both pages are precached. Password verification uses Web Crypto, not the network. |
@@ -160,7 +164,7 @@ The app also sets `document.documentElement.dataset.offlineReady` to `"true"` or
 
 ### The offline banner
 
-`js/app.js:27` listens for the `online` and `offline` events and toggles `#connection-status`:
+`js/app.js:37` listens for the `online` and `offline` events and toggles `#connection-status`:
 
 - Offline: *"Offline: using saved TimeNest files."*
 - Online: the banner is hidden.

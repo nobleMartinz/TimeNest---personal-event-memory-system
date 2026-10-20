@@ -28,12 +28,12 @@ TimeNest follows the coding rules set out in `TimeNest_Application_Specification
                               │
 ┌───────────────────────────────────────────────────────────────┐
 │  js/pages/*  — rendering + DOM event wiring per screen         │
-│  dashboard · reminders · diary · calendar · settings          │
+│  dashboard · reminders · diary · events · calendar · settings  │
 └───────────────────────────────────────────────────────────────┘
                               │
 ┌───────────────────────────────────────────────────────────────┐
 │  js/services/*  — business rules, pure where possible          │
-│  date · reminder · diary · notification · data-transfer       │
+│  date · reminder · diary · event · notification · data-transfer│
 │  service-worker                                                │
 └───────────────────────────────────────────────────────────────┘
                               │
@@ -49,7 +49,7 @@ Cross-cutting rules:
 
 - `js/services/date-service.js` is the **only** module that parses or formats dates. Everything else imports from it.
 - `js/services/auth-service.js` is the **only** module that touches the `accounts` and `sessions` stores.
-- `js/data/verification.js`, `js/services/date-verification.js` are test-support modules used only by the pages under `tests/`.
+- `js/data/verification.js`, `js/services/date-verification.js`, and `js/services/event-verification.js` are test-support modules used only by the pages under `tests/`.
 
 ---
 
@@ -57,7 +57,7 @@ Cross-cutting rules:
 
 ```
 TimeNest/
-├── index.html                     Application shell: header, sidebar, 5 views, 4 dialogs, toast region
+├── index.html                     Application shell: header, sidebar, 6 views, 6 dialogs, toast region
 ├── login.html                     Sign-in page for the local device profile
 ├── signup.html                    Profile creation page
 ├── repair.html                    Standalone service-worker + cache cleanup utility
@@ -81,6 +81,7 @@ TimeNest/
 │   ├── dashboard.css             Stat cards, dashboard rows, history panel
 │   ├── reminders.css             Reminder cards, detail views, dialog grid
 │   ├── diary.css                 Diary cards, detail views
+│   ├── events.css                Event cards, filter toolbar, responsive layout
 │   ├── calendar.css              Calendar grid, day cells, markers
 │   ├── settings.css              Settings panels, toggles, action groups
 │   └── responsive.css            980px / 720px breakpoints, reduced-motion
@@ -97,6 +98,7 @@ TimeNest/
 │   │   ├── dashboard-page.js     Stats, upcoming/overdue/completed lists, recent diary
 │   │   ├── reminders-page.js     Reminder list, filter, create/edit form, detail dialog
 │   │   ├── diary-page.js         Diary list, search/filter/sort, create/edit form, detail
+│   │   ├── events-page.js        Event list, filter/search/category, create/edit form, detail
 │   │   ├── calendar-page.js      Month grid, markers, selected-date panel
 │   │   ├── settings-page.js      Notifications, preferences, account, import/export, clear data
 │   │   ├── auth-page.js          Shared sign-in and sign-up behaviour
@@ -107,16 +109,20 @@ TimeNest/
 │       ├── date-service.js       Date parsing/formatting, recurrence, day maths
 │       ├── reminder-service.js   Reminder normalisation + CRUD + lifecycle actions
 │       ├── diary-service.js      Diary normalisation + CRUD + query/sort
+│       ├── event-service.js      Event normalisation + CRUD + timing derivation
 │       ├── notification-service.js  Permission, eligibility, dedupe, delivery
 │       ├── data-transfer-service.js  Export/import/clear with full validation
 │       ├── service-worker-service.js SW registration, update detection
 │       ├── auth-service.js       Local profiles, PBKDF2 hashing, sessions
-│       └── date-verification.js  Date/recurrence assertion suite
+│       ├── date-verification.js  Date/recurrence assertion suite
+│       └── event-verification.js Event assertion suite
 │
 ├── tests/
 │   ├── date-verification.html
 │   ├── database-verification.html
+│   ├── event-verification.html
 │   ├── auth-verification.html
+│   ├── contrast-verification.html
 │   └── offline-verification.html
 │
 └── docs/                         This documentation set
@@ -126,13 +132,14 @@ TimeNest/
 
 ## Routing
 
-Hash-based routing, implemented in `js/app.js:98`.
+Hash-based routing, implemented in `js/app.js:101`.
 
 | Hash | View element | Page module |
 | --- | --- | --- |
 | `#dashboard` (default) | dashboard sections in `main` | `dashboard-page.js` |
 | `#reminders` | `#reminders-view` | `reminders-page.js` |
 | `#diary` | `#diary-view` | `diary-page.js` |
+| `#events` | `#events-view` | `events-page.js` |
 | `#calendar` | `#calendar-view` | `calendar-page.js` |
 | `#settings` | `#settings-view` | `settings-page.js` |
 
@@ -180,10 +187,11 @@ page writes data
       └─► window.dispatchEvent(new CustomEvent('timenest:data-changed'))
                                   │
                                   ▼
-              app.js:121  ──► dashboardPage.refresh()
-                            ──► diaryPage.refresh()
-                            ──► calendarPage.refresh()
-                            ──► settingsPage.refresh()
+               app.js:125  ──► dashboardPage.refresh()
+                             ──► diaryPage.refresh()
+                             ──► eventsPage.refresh()
+                             ──► calendarPage.refresh()
+                             ──► settingsPage.refresh()
 ```
 
 This keeps the pages decoupled: a page never needs a direct reference to another page to know that data changed.
@@ -200,16 +208,18 @@ The app uses the native `<dialog>` element with `showModal()`:
 - `reminder-detail-dialog` — reminder summary, completion history, actions.
 - `diary-form-dialog` — create/edit a diary entry.
 - `diary-detail-dialog` — diary entry summary.
+- `event-form-dialog` — create/edit an event.
+- `event-detail-dialog` — event summary and actions.
 
 `showDialog()` falls back to `setAttribute('open', '')` if `showModal` is unavailable. Dismissal happens via `data-close-dialog="<dialog-id>"` attributes handled by a delegated `document` click listener.
 
 ### Accessibility in the app shell
 
-The mobile sidebar is a focus trap implemented in `js/app.js:60`:
+The mobile sidebar is a focus trap implemented in `js/app.js:62`:
 
 - `Escape` closes it.
 - `Tab` / `Shift+Tab` cycle within the sidebar's focusable elements.
-- `main` and the mobile header are marked `inert` while the drawer is open (`js/app.js:47`).
+- `main` and the mobile header are marked `inert` while the drawer is open (`js/app.js:49`).
 
 ---
 
@@ -248,13 +258,47 @@ All other pages re-render, toast shows "Reminder created."
 
 ---
 
+## Data flow example — creating an event
+
+```
+User fills #event-form and submits
+   │
+   ▼
+events-page.js  onsubmit
+   │  reads FormData, builds { title, date, endDate, time,
+   │  endTime, category, location, notes }
+   ▼
+event-service.js  createEvent(input)
+   │  normalizeEventInput()
+   │    ├─ validateTitle()                → throws if empty
+   │    ├─ normalizeDate()                → date-service.js
+   │    ├─ normalizeTime()                → throws if not HH:MM
+   │    └─ end date / end time ordering   → throws if reversed
+   │  stamps createdAt / updatedAt
+   ▼
+storage.js  eventRepository.add(record)
+   │  assigns id if missing, opens a readwrite transaction
+   ▼
+database.js  withStore('events', 'readwrite', ...)
+   ▼
+IndexedDB
+   │
+   ▼
+events-page.js  formDialog.close() → refresh() → dispatchEvent('timenest:data-changed')
+   │
+   ▼
+All other pages re-render, toast shows "Event saved."
+```
+
+---
+
 ## Error handling strategy
 
 | Layer | Approach |
 | --- | --- |
 | `database.js` | Wraps every failure in a `DatabaseError` carrying `operation`, `storeName`, and `cause`. |
 | `date-service.js` | Throws `DateServiceError` for invalid input and unsupported recurrence types. |
-| `reminder-service.js` / `diary-service.js` | Throw `Error` with human-readable messages. |
+| `reminder-service.js` / `diary-service.js` / `event-service.js` | Throw `Error` with human-readable messages. |
 | `data-transfer-service.js` | Throws `Error` prefixed `Import failed:` for every validation failure. |
 | `auth-service.js` | Throws `AuthError` with a machine-readable `code` so the UI can react precisely. |
 | Page modules | Catch, then surface the message through `showToast(message, 'error')` or the inline alert on the auth pages. |
@@ -274,4 +318,5 @@ The architecture is deliberately shaped so the following can be added without re
 | Accounts / multi-user | `auth-service.js` already isolates the account and session stores. See [Authentication → Migration path](authentication.md#migration-path). |
 | Google Calendar / `.ics` export | New service that consumes the same `reminderRepository.getAll()` output. |
 | Reminder search | `listReminders()` already accepts filter options; add a `query` option and a search field. |
-| Tags | `tags` arrays are already persisted on reminders and diary entries; only the UI inputs are missing. |
+| Event recurrence | `event-service.js` deliberately has no recurrence; recurring obligations are reminders, and a repeating occasion is one event per date. |
+| Tags | `tags` arrays are already persisted on reminders, diary entries, and events; only the UI inputs are missing. |

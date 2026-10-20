@@ -7,17 +7,18 @@ All persistence is **IndexedDB**. There is no server, no localStorage fallback, 
 | Property | Value |
 | --- | --- |
 | Name | `timenest-local` |
-| Version | `2` |
+| Version | `3` |
 | Defined in | `js/data/database.js:1` |
 
 ### Obsect stores
 
-Created on `upgradeneeded` in `js/data/database.js:49`. Creation is idempotent — each store is only created if it does not already exist — so a version bump adds new stores without touching existing data.
+Created on `upgradeneeded` in `js/data/database.js:50`. Creation is idempotent — each store is only created if it does not already exist — so a version bump adds new stores without touching existing data.
 
 | Store | Key path | Indexes |
 | --- | --- | --- |
 | `reminders` | `id` | `nextDueDate`, `category`, `status` |
 | `diaryEntries` | `id` | `date`, `category` |
+| `events` | `id` | `date`, `category` |
 | `settings` | `key` | — |
 | `notificationHistory` | `id` | — |
 | `accounts` | `id` | `email` (unique) |
@@ -26,6 +27,8 @@ Created on `upgradeneeded` in `js/data/database.js:49`. Creation is idempotent �
 `settings` uses a single-row pattern: one record with `key: 'app'`.
 
 The `accounts` and `sessions` stores hold the local profile. They are documented in [Authentication](authentication.md).
+
+The `events` store was added in version `3`. Upgrading from version `2` creates it and leaves every existing store untouched.
 
 ---
 
@@ -129,9 +132,37 @@ Written by `normalizeDiaryInput()` in `js/services/diary-service.js:4`.
 
 ---
 
+## Event record
+
+Written by `normalizeEventInput()` in `js/services/event-service.js:39`.
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `id` | `string` | `event-<uuid>`. |
+| `title` | `string` | Required, trimmed, max 120 chars at the form level. |
+| `date` | `string` | `YYYY-MM-DD`. Required. Indexed. The day the event happens. |
+| `endDate` | `string` | `YYYY-MM-DD` or `""`. The last day of a multi-day event. |
+| `time` | `string` | `HH:MM` or `""`. Start time. |
+| `endTime` | `string` | `HH:MM` or `""`. End time. |
+| `category` | `string` | Defaults to `"General"`, max 60 chars at the form level. Indexed. |
+| `location` | `string` | Free text, max 200 chars at the form level. |
+| `notes` | `string` | Free text, max 2000 chars at the form level. |
+| `tags` | `string[]` | Persisted by the model; no UI input yet. |
+| `cancelled` | `boolean` | `true` when the event was called off. |
+| `createdAt` | `string` | ISO timestamp. |
+| `updatedAt` | `string` | ISO timestamp. |
+
+### Timing is derived, not stored
+
+There is no `status` field. Whether an event is past, today, or upcoming is computed from `date` on read (`getEventTiming()` in `js/services/event-service.js:68`), so the answer can never go stale as the days pass.
+
+The only stored state is `cancelled`, which records the user's intent that the event will not happen. See [Events](events.md).
+
+---
+
 ## Settings record
 
-Single record under `key: 'app'`. Defaults defined in `js/data/storage.js:49`.
+Single record under `key: 'app'`. Defaults defined in `js/data/storage.js:50`.
 
 | Field | Type | Default | Purpose |
 | --- | --- | --- | --- |
@@ -184,7 +215,7 @@ Timestamps (`createdAt`, `updatedAt`, `completedAt`, `sentAt`) are full ISO 8601
 
 ## Import / export format
 
-Produced by `createExportDocument()` in `js/services/data-transfer-service.js:108`. `EXPORT_VERSION` is `1`.
+Produced by `createExportDocument()` in `js/services/data-transfer-service.js:129`. `EXPORT_VERSION` is `1`.
 
 ```jsonc
 {
@@ -193,20 +224,24 @@ Produced by `createExportDocument()` in `js/services/data-transfer-service.js:10
   "data": {
     "reminders": [ /* reminder records */ ],
     "diaryEntries": [ /* diary records */ ],
+    "events": [ /* event records */ ],
     "settings": { /* settings record */ }
   }
 }
 ```
 
+`events` is optional on import, so an export taken before the Events feature existed still imports cleanly.
+
 ### Import validation
 
-`validateImportDocument()` (`js/services/data-transfer-service.js:91`) resects a file when any of the following hold. Nothing is written until the whole document passes.
+`validateImportDocument()` (`js/services/data-transfer-service.js:107`) resects a file when any of the following hold. Nothing is written until the whole document passes.
 
 | Rule | Error |
 | --- | --- |
 | `version !== 1` | `expected a TimeNest export with version 1` |
 | `data` is not an obsect | same |
 | `reminders` / `diaryEntries` are not arrays | `reminders and diaryEntries must be arrays` |
+| `events` is present but not an array | `events must be an array.` |
 | A record has no non-empty string `id` | `every <collection> record needs a non-empty id` |
 | Two records share an `id` | `duplicate <collection> id "<id>"` |
 | `settings.theme` is not `system`/`light`/`dark` | `settings.theme must be system, light, or dark` |
@@ -216,6 +251,7 @@ Produced by `createExportDocument()` in `js/services/data-transfer-service.js:10
 | A reminder has an invalid `status` | `reminder "<id>" has an invalid status` |
 | A reminder fails `normalizeReminderInput` | `reminder "<id>" is invalid: <reason>` |
 | A diary entry fails `normalizeDiaryInput` | `diary entry "<id>" is invalid: <reason>` |
+| An event fails `normalizeEventInput` | `event "<id>" is invalid: <reason>` |
 
 Malformed JSON is caught separately and reported as `Import failed: the file is not valid JSON`.
 
@@ -224,7 +260,7 @@ Malformed JSON is caught separately and reported as `Import failed: the file is 
 | Mode | Behaviour |
 | --- | --- |
 | `merge` | Existing records with a matching `id` are **kept** and counted as `skipped`. New records are added. |
-| `replace` | All reminders, diary entries, and notification history are cleared first, then the import is written. |
+| `replace` | All reminders, diary entries, events, and notification history are cleared first, then the import is written. |
 
 Settings are always overwritten by the imported settings in both modes.
 
@@ -232,7 +268,7 @@ Settings are always overwritten by the imported settings in both modes.
 
 ## Clearing data
 
-`clearAllData()` (`js/services/data-transfer-service.js:143`) empties the `reminders`, `diaryEntries`, and `notificationHistory` stores and resets settings to defaults. The `settings` store is not cleared — it is overwritten with `DEFAULT_SETTINGS`.
+`clearAllData()` (`js/services/data-transfer-service.js:179`) empties the `reminders`, `diaryEntries`, `events`, and `notificationHistory` stores and resets settings to defaults. The `settings` store is not cleared — it is overwritten with `DEFAULT_SETTINGS`.
 
 The `accounts` and `sessions` stores are **not** touched by `clearAllData()`. Clearing your data does not sign you out or delete your profile. Delete the profile explicitly from **Settings → Account and access**.
 
@@ -246,4 +282,4 @@ The `accounts` and `sessions` stores are **not** touched by `clearAllData()`. Cl
 - No third-party scripts, fonts, or analytics.
 - The only outbound requests are for the app's own shell assets.
 - All personal data is confined to the browser profile on the device.
-- Clearing browser site data permanently removes every reminder and diary entry — export a backup first.
+- Clearing browser site data permanently removes every reminder, diary entry, and event — export a backup first.

@@ -1,6 +1,6 @@
 # TimeNest
 
-A private, local-first Progressive Web App for **reminders, recurring activities, diary entries, and a calendar**.
+A private, local-first Progressive Web App for **reminders, recurring activities, diary entries, events, and a calendar**.
 
 TimeNest helps you remember important activities, know when they are due again, and keep a record of what happened. All data lives in your browser on your own device — no account, no server, no tracking.
 
@@ -10,11 +10,12 @@ TimeNest helps you remember important activities, know when they are due again, 
 
 ## Features
 
-- **Dashboard** — today's date, due-today / coming-up / overdue counts, upcoming reminders, recent diary, and a completion history.
+- **Dashboard** — today's date, due-today / coming-up / overdue counts, upcoming reminders, upcoming events, recent diary, and a completion history.
 - **Reminders** — create, edit, complete, snooze, archive, restore, and delete, with full completion history.
 - **Recurrence** — one-time, daily, weekly, monthly, yearly, or custom intervals, with correct end-of-month and leap-year handling.
 - **Diary** — dated entries with categories, free-text search, filters, and sorting.
-- **Calendar** — a month grid with reminder and diary markers and a selected-day detail panel.
+- **Events** — dated records of what happened and what is coming up, with categories, locations, notes, search, and cancellation.
+- **Calendar** — a month grid with reminder, diary, and event markers and a selected-day detail panel.
 - **Notifications** — browser notifications for the lead window, the due date, and overdue items, with duplicate suppression.
 - **Local profile** — an optional password gate for the app, stored on-device with a salted PBKDF2 hash. No server, no email, no tracking.
 - **Themes** — light, dark, or follow the system.
@@ -50,6 +51,7 @@ Full documentation lives in [`docs/`](docs/README.md).
 | [Data Model](docs/data-model.md) | IndexedDB schema, record shapes, import/export format. |
 | [Authentication](docs/authentication.md) | Local profiles, password hashing, sessions, the app gate. |
 | [Features](docs/features.md) | Every user-facing feature, screen by screen. |
+| [Events](docs/events.md) | The Events feature: record shape, timing, cancellation, and the screen. |
 | [API Reference](docs/api-reference.md) | Exported functions of every module. |
 | [Design System](docs/design-system.md) | Tokens, components, breakpoints, accessibility rules. |
 | [Offline & PWA](docs/offline-pwa.md) | Service worker strategy, manifest, notification limits. |
@@ -69,12 +71,12 @@ TimeNest/
 ├── manifest.webmanifest       PWA manifest
 ├── sw.js                      Service worker (shell precache)
 ├── assets/icons/              SVG app icons
-├── css/                       13 stylesheets: tokens, layout, components, auth, responsive
+├── css/                       14 stylesheets: tokens, layout, components, auth, responsive
 ├── js/
 │   ├── app.js                 Entry point: auth gate, routing, navigation, theme, SW registration
 │   ├── data/                  IndexedDB layer (database.js, storage.js, verification.js)
 │   ├── pages/                 One module per screen
-│   └── services/              Business logic: dates, reminders, diary, notifications, import/export, auth
+│   └── services/              Business logic: dates, reminders, diary, events, notifications, import/export, auth
 ├── tests/                     Browser-run verification suites
 └── docs/                      This documentation set
 ```

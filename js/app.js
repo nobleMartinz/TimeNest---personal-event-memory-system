@@ -1,7 +1,8 @@
 import { initRemindersPage } from './pages/reminders-page.js';
-import { initDashboardPage } from './pages/dashboard-page.js';
+import { initDashboardPage } from './pages/dashboard-page.js?v=2';
 import { initDiaryPage } from './pages/diary-page.js';
-import { initCalendarPage } from './pages/calendar-page.js';
+import { initEventsPage } from './pages/events-page.js?v=3';
+import { initCalendarPage } from './pages/calendar-page.js?v=2';
 import { applySavedTheme, initSettingsPage } from './pages/settings-page.js?v=2';
 import { checkAndNotifyReminders } from './services/notification-service.js';
 import { registerServiceWorker } from './services/service-worker-service.js';
@@ -15,9 +16,10 @@ const main = document.querySelector('main');
 const mobileHeader = document.querySelector('.mobile-header');
 const remindersView = document.querySelector('#reminders-view');
 const diaryView = document.querySelector('#diary-view');
+const eventsView = document.querySelector('#events-view');
 const calendarView = document.querySelector('#calendar-view');
 const settingsView = document.querySelector('#settings-view');
-const views = { reminders: remindersView, diary: diaryView, calendar: calendarView, settings: settingsView };
+const views = { reminders: remindersView, diary: diaryView, events: eventsView, calendar: calendarView, settings: settingsView };
 const dashboardNodes = [...main.children].filter((node) => !Object.values(views).includes(node));
 const connectionStatus = document.querySelector('#connection-status');
 const connectionMessage = document.querySelector('[data-connection-message]');
@@ -92,12 +94,13 @@ navigationLinks.forEach((link) => {
 let remindersPage;
 let dashboardPage;
 let diaryPage;
+let eventsPage;
 let calendarPage;
 let settingsPage;
 
 function renderRoute() {
   const route = window.location.hash.slice(1) || 'dashboard';
-  const currentRoute = ['reminders', 'diary', 'calendar', 'settings'].includes(route) ? route : 'dashboard';
+  const currentRoute = ['reminders', 'diary', 'events', 'calendar', 'settings'].includes(route) ? route : 'dashboard';
   dashboardNodes.forEach((node) => {
     node.hidden = currentRoute !== 'dashboard';
   });
@@ -112,6 +115,7 @@ function renderRoute() {
   });
   if (currentRoute === 'reminders') void remindersPage.refresh();
   else if (currentRoute === 'diary') void diaryPage.refresh();
+  else if (currentRoute === 'events') void eventsPage.refresh();
   else if (currentRoute === 'calendar') void calendarPage.refresh();
   else if (currentRoute === 'settings') void settingsPage.refresh();
   else void dashboardPage.refresh();
@@ -121,6 +125,7 @@ window.addEventListener('hashchange', renderRoute);
 window.addEventListener('timenest:data-changed', () => {
   void dashboardPage.refresh();
   void diaryPage.refresh();
+  void eventsPage.refresh();
   void calendarPage.refresh();
   void settingsPage.refresh();
 });
@@ -129,6 +134,7 @@ async function startApplication() {
   remindersPage = initRemindersPage();
   dashboardPage = initDashboardPage();
   diaryPage = initDiaryPage();
+  eventsPage = initEventsPage();
   calendarPage = initCalendarPage();
   settingsPage = initSettingsPage();
   main.inert = false;

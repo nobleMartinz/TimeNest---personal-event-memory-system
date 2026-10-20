@@ -8,7 +8,7 @@ The design follows `TimeNest_UI_UX_Design_Specification.docx` §4 (Design System
 
 ## CSS layering
 
-Twelve stylesheets load in a deliberate cascade order. Later files may override earlier ones; earlier files must never depend on later ones.
+Thirteen stylesheets load in a deliberate cascade order. Later files may override earlier ones; earlier files must never depend on later ones.
 
 | # | File | Responsibility |
 | --- | --- | --- |
@@ -21,9 +21,10 @@ Twelve stylesheets load in a deliberate cascade order. Later files may override 
 | 7 | `css/dashboard.css` | Stat cards, dashboard rows, history panel. |
 | 8 | `css/reminders.css` | Reminder cards, filter toolbar, detail views, dialog grid. |
 | 9 | `css/diary.css` | Diary cards, detail views. |
-| 10 | `css/calendar.css` | Calendar grid, day cells, markers, legend. |
-| 11 | `css/settings.css` | Settings panels, toggles, action groups, notes. |
-| 12 | `css/responsive.css` | Breakpoint overrides and reduced-motion handling. |
+| 10 | `css/events.css` | Event cards, filter toolbar, responsive layout. |
+| 11 | `css/calendar.css` | Calendar grid, day cells, markers, legend. |
+| 12 | `css/settings.css` | Settings panels, toggles, action groups, notes. |
+| 13 | `css/responsive.css` | Breakpoint overrides and reduced-motion handling. |
 
 `css/auth.css` is a **separate, standalone stylesheet** loaded only by `login.html` and `signup.html`. Those pages do not load the app shell stylesheets, so the auth layout stays independent of the main application chrome.
 
@@ -97,7 +98,7 @@ Three themes, driven by a `data-theme` attribute on `<html>`:
 
 The dark palette is declared twice — once for the explicit attribute, once inside the `prefers-color-scheme` media query — so both paths resolve to identical values.
 
-`applyTheme()` in `js/pages/settings-page.js:16` toggles the attribute:
+`applyTheme()` in `js/pages/settings-page.js:25` toggles the attribute:
 
 ```js
 document.documentElement.toggleAttribute('data-theme', theme !== 'system');
@@ -222,6 +223,7 @@ Toasts are removed 3.6 seconds after being appended.
 | --- | --- | --- |
 | `.reminder-card` | `reminders.css` | Three-part grid: main, date, actions. |
 | `.diary-card` | `diary.css` | Three-part grid: date, body, actions. |
+| `.event-card` | `events.css` | Three-part grid: main, date, actions, with a marker bar on the title. |
 | `.stat-card` | `dashboard.css` | Label, icon, large value, caption. |
 | `.dashboard-row` | `dashboard.css` | Compact list row: content, time, optional action. |
 | `.calendar-day` | `calendar.css` | A button cell with day number and markers. |
@@ -256,7 +258,11 @@ Toasts are removed 3.6 seconds after being appended.
 
 ### Calendar markers
 
-`.calendar-marker--diary` (a dot) and `.calendar-marker--reminder` (a ring) distinguish the two record types in the grid and legend.
+`.calendar-marker--diary` (a dot), `.calendar-marker--reminder` (a ring), and `.calendar-marker--event` (info blue) distinguish the three record types in the grid and legend.
+
+### Event cards
+
+`.event-card` is a three-part grid — main, date, actions — with `.event-card__marker`, a 5px info-blue bar beside the title, tying the card to the calendar marker. `.event-card--cancelled` dims the whole card to `opacity: 0.72`, so a called-off event reads as inactive without relying on colour alone. Below 720px the grid collapses to a single column and the date block left-aligns.
 
 ---
 
@@ -278,8 +284,9 @@ Toasts are removed 3.6 seconds after being appended.
 
 ### Dashboard grid
 
-- `.stats-grid` — three equal columns for the stat cards.
-- `.dashboard-grid` — `minmax(0, 1.35fr) minmax(280px, 0.65fr)`, placing the wide upcoming panel beside the narrower diary panel.
+- `.stats-grid` — four equal columns for the stat cards.
+- `.dashboard-grid` — `minmax(0, 1.35fr) minmax(280px, 0.65fr)`, placing the wide upcoming-reminders panel beside the narrower diary panel.
+- The **Upcoming events**, **Overdue**, and **Recently completed** panels are full-width `.content-panel` sections below the grid.
 
 ---
 

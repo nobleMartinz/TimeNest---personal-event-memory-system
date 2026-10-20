@@ -1,4 +1,4 @@
-import { getSettings, updateSettings } from '../data/storage.js';
+import { getSettings, updateSettings } from '../data/storage.js?v=2';
 import {
   checkAndNotifyReminders,
   getNotificationStatus,
@@ -11,7 +11,7 @@ import {
   clearAllData,
   createExportDocument,
   importDocument
-} from '../services/data-transfer-service.js';
+} from '../services/data-transfer-service.js?v=2';
 import {
   changePassword,
   deleteAccount,
@@ -264,7 +264,7 @@ function initSettingsPage() {
     }
     const mode = importMode.value;
     const message = mode === IMPORT_MODES.replace
-      ? 'Replace all existing reminders, diary entries, and notification history with this import? This cannot be undone.'
+      ? 'Replace all existing reminders, diary entries, events, and notification history with this import? This cannot be undone.'
       : 'Merge this import with your existing data? Records with matching IDs will be kept as they are.';
     if (!window.confirm(message)) return;
     try {

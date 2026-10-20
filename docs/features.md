@@ -13,6 +13,7 @@ A fixed sidebar on desktop (≥721px) and a slide-in drawer with a hamburger but
 | Dashboard | `#dashboard` |
 | Reminders | `#reminders` |
 | Diary | `#diary` |
+| Events | `#events` |
 | Calendar | `#calendar` |
 | Settings | `#settings` |
 Desktop behaviour:
@@ -20,7 +21,7 @@ Desktop behaviour:
 - The active link carries `is-active` and `aria-current="page"`.
 - The footer holds a privacy note ("Your space stays yours") and the version line `TimeNest MVP · Local first`.
 
-Mobile behaviour (`js/app.js:38`):
+Mobile behaviour (`js/app.js:40`):
 - The drawer slides in from the left with a `200ms` transform transition.
 - A translucent backdrop (`rgba(12, 24, 19, 0.42)`) dims the page.
 - `main` and the mobile header are set to `inert`, so focus cannot escape the drawer.
@@ -78,7 +79,7 @@ Wrong credentials show *"Email or password is incorrect."* — deliberately vagu
 
 ### Password recovery
 
-There is no email to reset with, because there is no mail server. Instead, **Reset the local profile** removes the password and keeps every reminder and diary entry.
+There is no email to reset with, because there is no mail server. Instead, **Reset the local profile** removes the password and keeps every reminder, diary entry, and event.
 
 A **Continue without signing in** link is always present, so the gate never traps a user out of their own data.
 
@@ -110,17 +111,18 @@ The landing screen. Implemented in `js/pages/dashboard-page.js`.
 
 - The current date, formatted `dateStyle: 'full'` (e.g. *"Saturday, September 12, 2026"*).
 - Greeting heading: *"Good morning, make today count."*
-- Two quick actions: **+ Add diary entry** and **+ Add reminder**.
+- Three quick actions: **+ Add diary entry**, **+ Add event**, and **+ Add reminder**.
 
 ### At-a-glance stats
 
-Three stat cards. Each shows a live count plus a caption that changes with the data.
+Four stat cards. Each shows a live count plus a caption that changes with the data.
 
 | Card | Count | Caption when empty | Caption when populated |
 | --- | --- | --- | --- |
 | Due today | Active reminders with `nextDueDate === today` | "Nothing pressing today" | "Needs your attention" |
 | Coming up | Active reminders due in 1–7 days | "In the next 7 days" | "In the next 7 days" |
 | Overdue | Active reminders with `nextDueDate < today` | "All caught up" | "Needs a response" |
+| Events | Upcoming events, cancelled ones excluded | "Nothing scheduled" | "Coming up" |
 
 The "Due today" card uses the accent treatment; "Overdue" uses the warning treatment.
 
@@ -129,11 +131,12 @@ The "Due today" card uses the accent treatment; "Overdue" uses the warning treat
 | Panel | Contents |
 | --- | --- |
 | **Upcoming reminders** | Active reminders due in 1–7 days, each with a **Complete** button. Empty state: *"Your future is wide open"* with a "Create your first reminder" button. |
+| **Upcoming events** | The next 4 events, today first and then by date. Empty state: *"Nothing on the horizon"* with an "Add event" button. |
 | **Recent diary** | The 4 most recent diary entries, newest first. Empty state: *"Leave yourself a note"* with a "Write an entry" button. |
 | **Overdue reminders** | Active reminders past due, each with a **Complete** button. Empty state: *"Nothing overdue"*. |
 | **Recently completed** | The 5 most recent completion-history entries across all reminders, newest completion first, showing the original due date. Empty state is a quiet line: *"Completed reminders will appear here, so progress does not disappear."* |
 
-All four panels use `aria-live="polite"`, so screen readers announce updates after a completion.
+All five panels use `aria-live="polite"`, so screen readers announce updates after a completion.
 
 ---
 
@@ -262,6 +265,64 @@ Implemented in `js/pages/diary-page.js`.
 
 ---
 
+## Events (`#events`)
+
+Implemented in `js/pages/events-page.js`. Events record the things that happened and the things still to come. They never repeat — a repeating obligation is a reminder, and a repeating occasion is one event per date. Full detail in [Events](events.md).
+
+### Toolbar
+
+| Control | Type | Behaviour |
+| --- | --- | --- |
+| Show | select | *Upcoming events* (default), *Past events*, *All events*. Fires on `change`. |
+| Search | text (`type="search"`) | Matches title, category, location, notes, or tags. Fires on `input`. |
+| Category | select | Populated dynamically from the stored events. Fires on `change`. |
+
+### Event card
+
+- The title with an info-blue marker bar.
+- The category, the location, and the notes (truncated visually by CSS).
+- The date or date range, and the time range when set.
+- A status badge.
+- Actions: **Cancel** (or **Restore** for a cancelled event) and a **→** button opening the detail dialog.
+
+### Status badges
+
+Computed from the date relative to today (`timingFor()` in `js/pages/events-page.js:40`).
+
+| State | Condition | Badge |
+| --- | --- | --- |
+| Cancelled | `cancelled === true` | *Cancelled* (muted) |
+| Happening today | the date is today | *Happening today* (warning) |
+| Past | the date is before today | *Past* (muted) |
+| Upcoming | the date is after today | *Upcoming* (info) |
+
+### Add / Edit event dialog
+
+`#event-form-dialog`. The same dialog serves both create and edit; the heading changes between "Add event" and "Edit event".
+
+| Field | Control | Notes |
+| --- | --- | --- |
+| Title | text | Required, `maxlength=120` |
+| Date | date | Required. Defaults to today. |
+| End date | date | Optional. Must not be before the date. |
+| Start time | time | Optional |
+| End time | time | Optional. Must not be before the start time. |
+| Category | text | `maxlength=60`, defaults to `General` |
+| Location | text | `maxlength=200` |
+| Notes | textarea | Optional, `maxlength=2000` |
+
+Saving shows a toast: *"Event saved."* or *"Event updated."*
+
+### Event detail dialog
+
+`#event-detail-dialog`. Shows the title, status badge, date or range, time range, category, location, and the full notes, with **Cancel** / **Restore**, **Edit**, and **Delete** actions. Deletion requires confirmation.
+
+### Cancellation
+
+Cancelling marks the event as called off without deleting it. The event stays in the list, dimmed, with a **Cancelled** badge and a **Restore** action. Cancelled events are excluded from the dashboard's "Events" count and "Upcoming events" panel, but they still appear on the calendar, labelled *"Event (cancelled)"*.
+
+---
+
 ## Calendar (`#calendar`)
 
 Implemented in `js/pages/calendar-page.js`.
@@ -278,12 +339,12 @@ Implemented in `js/pages/calendar-page.js`.
 - Days outside the current month are shown muted rather than hidden, so the month shape stays stable.
 - **Today** gets `calendar-day--today`.
 - **Selected date** gets `calendar-day--selected`.
-- Markers: a dot for a diary entry, a marker for an active (non-archived) reminder.
-- Each cell is a real `<button>` with an `aria-label` giving the formatted date plus a description of any items — for example *"September 12, 2026. Diary entry. Reminder."*. The label is textual, so the information does not depend on colour.
+- Markers: a dot for a diary entry, a marker for an active (non-archived) reminder, and an info-blue marker for an event. A multi-day event marks every day it covers.
+- Each cell is a real `<button>` with an `aria-label` giving the formatted date plus a description of any items — for example *"September 12, 2026. Diary entry. Reminder. Event."*. The label is textual, so the information does not depend on colour.
 
 ### Selected-date panel
 
-Below the grid, the selected date is listed with every reminder and diary entry attached to it. Reminders are listed first, then diary entries, each labelled. When the date has nothing, the panel reads *"Nothing recorded for this date."*
+Below the grid, the selected date is listed with every reminder, diary entry, and event attached to it. Reminders are listed first, then diary entries, then events, each labelled. When the date has nothing, the panel reads *"Nothing recorded for this date."*
 
 ---
 
@@ -327,7 +388,7 @@ A panel that reflects the local profile state.
 | Email address | Shown. |
 | **Change password** | Opens a dialog asking for the current and new password. The account is re-hashed with a fresh salt. |
 | **Sign out** | Ends the session and returns to `login.html`. |
-| **Delete profile** | Removes the account after confirmation. Your reminders, diary entries, and preferences are kept. |
+| **Delete profile** | Removes the account after confirmation. Your reminders, diary entries, events, and preferences are kept. |
 
 **Signed out with a profile present:** the badge reads *Locked*, with **Sign in** and **Forgot password**. Forgetting the password removes it and keeps the data.
 
@@ -343,7 +404,7 @@ A note explains that the profile is stored only on this device and simply puts a
 | File picker | Accepts `.json`. |
 | **Export JSON** | Downloads `timenest-export-YYYY-MM-DD.json`. |
 | **Import JSON** | Validates, then imports in the chosen mode. Confirmed with `window.confirm` first. |
-| **Clear all data** | Removes every reminder, diary entry, notification history item, and resets preferences. Confirmed first. |
+| **Clear all data** | Removes every reminder, diary entry, event, notification history item, and resets preferences. Confirmed first. |
 
 Import and clear both report a result line and raise a toast.
 
@@ -383,7 +444,7 @@ See [Offline & PWA](offline-pwa.md).
 | Focus | A 3px coral `:focus-visible` outline with a 3px offset, never removed. |
 | Forms | Every control has a `<label>` bound by `for`/`id`. Required fields use the native `required` attribute. |
 | Modals | Native `<dialog>` with `showModal()` gives focus trapping, `Escape` dismissal, and a top-layer backdrop. |
-| Live regions | Dashboard lists, diary list, reminder list, and toast region use `aria-live="polite"`. The auth alert uses `aria-live="assertive"`. |
+| Live regions | Dashboard lists, diary list, event list, reminder list, and toast region use `aria-live="polite"`. The auth alert uses `aria-live="assertive"`. |
 | Status | Every status badge carries a text label, never colour alone. Calendar days expose text labels. |
 | Drawer | `inert` on the rest of the page plus a manual `Tab` focus trap and `Escape` handling. |
 | Motion | `prefers-reduced-motion: reduce` disables all transitions and smooth scrolling. |
@@ -412,7 +473,7 @@ Features named in the specifications but not yet implemented in the current buil
 | Gap | Spec reference | Note |
 | --- | --- | --- |
 | Reminder search | MVP §Search; UX §14 | The reminders view has a status filter but no free-text search. `listReminders()` has no `query` option yet. |
-| Tag input | MVP §Tags (optional); UX §10 | `tags` arrays are persisted on both record types, but no form field writes them. |
+| Tag input | MVP §Tags (optional); UX §10 | `tags` arrays are persisted on all three record types, but no form field writes them. |
 | "Due today" list on the dashboard | UX §5 | Today is only a stat card count; the "Upcoming reminders" panel covers days 1–7. |
 | Date-range filtering | UX §14 | Only an exact date filter exists for the diary. |
 | Background/periodic notification checks | MVP US-05 | Checks run on app open and on manual request only. A tab cannot reliably wake itself. |

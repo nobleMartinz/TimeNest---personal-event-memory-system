@@ -1,5 +1,6 @@
-import { diaryRepository } from '../data/storage.js';
-import { reminderRepository } from '../data/storage.js';
+import { diaryRepository } from '../data/storage.js?v=2';
+import { reminderRepository } from '../data/storage.js?v=2';
+import { eventRepository } from '../data/storage.js?v=2';
 import { daysInMonth, normalizeDate } from '../services/date-service.js';
 
 function escapeHtml(value) {
@@ -31,21 +32,23 @@ function initCalendarPage() {
   const state = { year: todayParts[0], month: todayParts[1] - 1, selected: today };
   let renderSequence = 0;
 
-  async function renderSelected(date, diaries, reminders) {
+  async function renderSelected(date, diaries, reminders, events) {
     state.selected = date;
     selectedDateLabel.textContent = formatDate(date);
     const dateDiaries = diaries.filter((entry) => entry.date === date);
     const dateReminders = reminders.filter((reminder) => reminder.nextDueDate === date);
+    const dateEvents = events.filter((event) => event.date === date || (event.endDate && event.endDate >= date && event.date <= date));
     const items = [
       ...dateReminders.map((reminder) => `<li class="calendar-item calendar-item--reminder"><strong>${escapeHtml(reminder.title)}</strong><span>Reminder</span></li>`),
-      ...dateDiaries.map((entry) => `<li class="calendar-item calendar-item--diary"><strong>${escapeHtml(entry.title)}</strong><span>Diary entry</span></li>`)
+      ...dateDiaries.map((entry) => `<li class="calendar-item calendar-item--diary"><strong>${escapeHtml(entry.title)}</strong><span>Diary entry</span></li>`),
+      ...dateEvents.map((event) => `<li class="calendar-item calendar-item--event"><strong>${escapeHtml(event.title)}</strong><span>Event${event.cancelled ? ' (cancelled)' : ''}</span></li>`)
     ];
     selectedItems.innerHTML = items.length ? `<ul class="calendar-item-list">${items.join('')}</ul>` : '<p class="detail-muted">Nothing recorded for this date.</p>';
   }
 
   async function refresh() {
     const sequence = ++renderSequence;
-    const [diaries, reminders] = await Promise.all([diaryRepository.getAll(), reminderRepository.getAll()]);
+    const [diaries, reminders, events] = await Promise.all([diaryRepository.getAll(), reminderRepository.getAll(), eventRepository.getAll()]);
     if (sequence !== renderSequence) return;
     const firstDay = new Date(Date.UTC(state.year, state.month, 1)).getUTCDay();
     const monthLength = daysInMonth(state.year, state.month);
@@ -73,16 +76,17 @@ function initCalendarPage() {
       const key = dateKey(year, month, day);
       const hasDiary = diaries.some((entry) => entry.date === key);
       const hasReminder = reminders.some((reminder) => reminder.nextDueDate === key && reminder.status !== 'archived');
+      const hasEvent = events.some((event) => event.date === key || (event.endDate && event.endDate >= key && event.date <= key));
       const classes = ['calendar-day'];
       if (muted) classes.push('calendar-day--muted');
       if (key === today) classes.push('calendar-day--today');
       if (key === state.selected) classes.push('calendar-day--selected');
-      const itemLabel = `${hasDiary ? ' Diary entry.' : ''}${hasReminder ? ' Reminder.' : ''}`;
-      cells.push(`<button class="${classes.join(' ')}" type="button" data-calendar-date="${key}" aria-label="${escapeHtml(formatDate(key))}.${itemLabel}"><span aria-hidden="true">${day}</span><span class="calendar-day__markers" aria-hidden="true">${hasDiary ? '<i class="calendar-marker calendar-marker--diary"></i>' : ''}${hasReminder ? '<i class="calendar-marker calendar-marker--reminder"></i>' : ''}</span></button>`);
+      const itemLabel = `${hasDiary ? ' Diary entry.' : ''}${hasReminder ? ' Reminder.' : ''}${hasEvent ? ' Event.' : ''}`;
+      cells.push(`<button class="${classes.join(' ')}" type="button" data-calendar-date="${key}" aria-label="${escapeHtml(formatDate(key))}.${itemLabel}"><span aria-hidden="true">${day}</span><span class="calendar-day__markers" aria-hidden="true">${hasDiary ? '<i class="calendar-marker calendar-marker--diary"></i>' : ''}${hasReminder ? '<i class="calendar-marker calendar-marker--reminder"></i>' : ''}${hasEvent ? '<i class="calendar-marker calendar-marker--event"></i>' : ''}</span></button>`);
     }
     grid.innerHTML = cells.join('');
     if (sequence !== renderSequence) return;
-    await renderSelected(state.selected, diaries, reminders);
+    await renderSelected(state.selected, diaries, reminders, events);
   }
 
   function moveMonth(amount) {

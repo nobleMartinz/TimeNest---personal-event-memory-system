@@ -1,6 +1,7 @@
-import { getDatabase, STORE_NAMES } from './database.js';
+import { getDatabase, STORE_NAMES } from './database.js?v=2';
 import {
   diaryRepository,
+  eventRepository,
   getSettings,
   notificationHistoryRepository,
   reminderRepository,
@@ -20,6 +21,8 @@ async function verifyDatabase() {
   const suffix = Date.now();
   const reminderId = `verification-reminder-${suffix}`;
   const diaryId = `verification-diary-${suffix}`;
+  const eventId = `verification-event-${suffix}`;
+  const importEventId = `verification-import-event-${suffix}`;
   const notificationId = `verification-notification-${suffix}`;
   const originalSettings = await getSettings();
   const testSettings = { ...originalSettings, defaultReminderDays: 3 };
@@ -42,6 +45,14 @@ async function verifyDatabase() {
     });
     const storedDiaryEntry = await diaryRepository.get(diaryId);
 
+    const event = await eventRepository.add({
+      id: eventId,
+      title: 'Database verification event',
+      date: '2026-09-12',
+      category: 'General'
+    });
+    const storedEvent = await eventRepository.get(eventId);
+
     const notification = await notificationHistoryRepository.add({
       id: notificationId,
       reminderId,
@@ -55,12 +66,14 @@ async function verifyDatabase() {
 
     const allReminders = await reminderRepository.getAll();
     const allDiaryEntries = await diaryRepository.getAll();
+    const allEvents = await eventRepository.getAll();
     const allNotifications = await notificationHistoryRepository.getAll();
 
     let malformedRejected = false;
     let malformedJsonRejected = false;
     let duplicateRejected = false;
     let mergeDuplicateSkipped = false;
+    let mergeImportedEvent = false;
     try {
       JSON.parse('{ not valid JSON');
     } catch {
@@ -91,12 +104,15 @@ async function verifyDatabase() {
       data: {
         reminders: [{ ...reminder }],
         diaryEntries: [],
+        events: [{ id: importEventId, title: 'Database verification imported event', date: '2026-09-12' }],
         settings: originalSettings
       }
     }, IMPORT_MODES.merge);
-    mergeDuplicateSkipped = mergeReport.imported === 0 && mergeReport.skipped === 1;
+    mergeDuplicateSkipped = mergeReport.imported === 1 && mergeReport.skipped === 1;
+    const importedEvent = await eventRepository.get(importEventId);
+    mergeImportedEvent = Boolean(importedEvent) && importedEvent.title === 'Database verification imported event';
 
-    if (storedReminder.status !== 'completed' || storedDiaryEntry.id !== diaryId || storedNotification.id !== notificationId || storedSettings.defaultReminderDays !== 3 || !malformedJsonRejected || !malformedRejected || !duplicateRejected || !mergeDuplicateSkipped) {
+    if (storedReminder.status !== 'completed' || storedDiaryEntry.id !== diaryId || storedEvent.id !== eventId || storedNotification.id !== notificationId || storedSettings.defaultReminderDays !== 3 || !malformedJsonRejected || !malformedRejected || !duplicateRejected || !mergeDuplicateSkipped || !mergeImportedEvent) {
       throw new Error('One or more CRUD or settings assertions failed.');
     }
 
@@ -108,23 +124,28 @@ async function verifyDatabase() {
         'object stores exist',
         'reminder add, get, update, and getAll passed',
         'diary entry add and get passed',
+        'event add and get passed',
         'notification history add and get passed',
         'settings save and read-back passed',
         'malformed JSON files and import documents are rejected',
         'duplicate import records are rejected',
         'merge imports keep existing duplicate records',
+        'merge imports add new event records',
         'imported settings are validated against the theme allow-list',
         `settings restored to ${originalSettings.theme} theme`
       ],
       countsBeforeCleanup: {
         reminders: allReminders.length,
         diaryEntries: allDiaryEntries.length,
+        events: allEvents.length,
         notifications: allNotifications.length
       }
     };
   } finally {
     await reminderRepository.remove(reminderId);
     await diaryRepository.remove(diaryId);
+    await eventRepository.remove(eventId);
+    await eventRepository.remove(importEventId);
     await notificationHistoryRepository.remove(notificationId);
     await saveSettings(originalSettings);
   }

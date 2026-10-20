@@ -1,6 +1,6 @@
 # Testing
 
-TimeNest has **no build step and no test runner**. Verification runs as five self-contained HTML pages that execute real assertions in the browser against the real modules.
+TimeNest has **no build step and no test runner**. Verification runs as six self-contained HTML pages that execute real assertions in the browser against the real modules.
 
 This is deliberate: the app has no dependencies, so a dependency-free test harness fits the project better than adding a framework.
 
@@ -18,6 +18,7 @@ python -m http.server 4173
 | --- | --- | --- |
 | Date & recurrence | `http://127.0.0.1:4173/tests/date-verification.html` | `js/services/date-verification.js` |
 | Database | `http://127.0.0.1:4173/tests/database-verification.html` | `js/data/verification.js` |
+| Events | `http://127.0.0.1:4173/tests/event-verification.html` | `js/services/event-verification.js` |
 | Authentication | `http://127.0.0.1:4173/tests/auth-verification.html` | `js/services/auth-service.js` |
 | Contrast | `http://127.0.0.1:4173/tests/contrast-verification.html` | inline, audits the rendered pages in an iframe |
 | Offline | `http://127.0.0.1:4173/tests/offline-verification.html` | inline, uses the Cache API directly |
@@ -96,15 +97,17 @@ An asynchronous suite that runs against the live `timenest-local` IndexedDB data
 | Assertion | Method |
 | --- | --- |
 | The database initialises | `getDatabase()` |
-| All four object stores exist | `database.objectStoreNames` |
+| All five object stores exist | `database.objectStoreNames` |
 | Reminders: add, get, update, getAll | `reminderRepository` |
 | Diary entries: add and get | `diaryRepository` |
+| Events: add and get | `eventRepository` |
 | Notification history: add and get | `notificationHistoryRepository` |
 | Settings save and read back | `saveSettings` / `getSettings` |
 | Malformed JSON is rejected | `JSON.parse('{ not valid JSON')` throws |
 | Malformed import documents are rejected | `validateImportDocument` with a partial settings object |
 | Duplicate import ids are rejected | `validateImportDocument` with two records sharing an `id` |
-| Merge imports keep existing duplicates | `importDocument` in merge mode returns `imported: 0, skipped: 1` |
+| Merge imports keep existing duplicates | `importDocument` in merge mode returns `imported: 1, skipped: 1` |
+| Merge imports add new event records | `importDocument` writes an event that was not in the database |
 | Settings are restored to their original theme | `saveSettings(originalSettings)` in `finally` |
 
 ### Report shape
@@ -112,13 +115,80 @@ An asynchronous suite that runs against the live `timenest-local` IndexedDB data
 ```js
 {
   passed: true,
-  stores: ['reminders', 'diaryEntries', 'settings', 'notificationHistory'],
+  stores: ['reminders', 'diaryEntries', 'events', 'settings', 'notificationHistory'],
   assertions: [ /* one string per check */ ],
-  countsBeforeCleanup: { reminders: n, diaryEntries: n, notifications: n }
+  countsBeforeCleanup: { reminders: n, diaryEntries: n, events: n, notifications: n }
 }
 ```
 
 A failed assertion throws `"One or more CRUD or settings assertions failed."`, and the page reports **FAIL** with the message.
+
+---
+
+## Event verification
+
+`js/services/event-verification.js` → `runEventVerification()`
+
+An asynchronous suite of 41 assertions against `js/services/event-service.js`. It creates three temporary events — one in the past, one today, and one in the future — and removes them in a `finally` block.
+
+Every record it creates carries a run-scoped token, so the assertions do not depend on whatever is already in the browser's database.
+
+### What it asserts
+
+**Storage and normalisation**
+
+| Assertion |
+| --- |
+| The title, date, category, location, time, and end date are stored as given. |
+| A new event starts uncancelled and records a creation timestamp. |
+
+**Validation — each of these is rejected**
+
+| Assertion |
+| --- |
+| A blank title. |
+| A missing date. |
+| A date that is not `YYYY-MM-DD`. |
+| An end date before the start date. |
+| A time that is not `HH:MM`. |
+| An end time before the start time. |
+
+**Timing**
+
+| Assertion |
+| --- |
+| An event dated today is timed as *today*. |
+| A future event is timed as *upcoming*. |
+| A past event is timed as *past*. |
+
+**Filtering and search**
+
+| Assertion |
+| --- |
+| The upcoming filter keeps future events and drops past ones. |
+| The past filter keeps past events and drops future ones. |
+| The all filter returns every matching event. |
+| Search matches the event location. |
+| The category filter narrows the list to the matching category. |
+
+**Cancellation and restoration**
+
+| Assertion |
+| --- |
+| Cancelling sets the cancelled flag. |
+| Cancelled events are hidden by default. |
+| Cancelled events are returned when `includeCancelled` is set. |
+| Restoring clears the cancelled flag. |
+
+**Updates and deletion**
+
+| Assertion |
+| --- |
+| An update changes the title and the end time. |
+| An update keeps the original creation timestamp. |
+| An updated event is persisted. |
+| Updating an event that does not exist is rejected. |
+| A deleted event is removed from the store. |
 
 ---
 
@@ -172,13 +242,15 @@ The suite cleans up after itself in a `finally` block.
 
 | Check | How |
 | --- | --- |
-| Every screen | `login.html`, `signup.html`, and all five app routes (`#dashboard`, `#reminders`, `#diary`, `#calendar`, `#settings`) |
+| Every screen | `login.html`, `signup.html`, and all six app routes (`#dashboard`, `#reminders`, `#diary`, `#events`, `#calendar`, `#settings`) |
 | Both themes | Each screen is audited with `data-theme="light"` and `data-theme="dark"` |
 | Effective background | Semi-transparent layers are composited up the ancestor chain before the ratio is computed |
 | Threshold | 4.5:1 for normal text, 3:1 for large text (24px, or 18.66px bold) |
 | Hidden text | Elements with `display: none`, `visibility: hidden`, or an opacity below 0.5 are skipped |
 
 The sign-in page's **Forgot your password** block is only visible once a profile exists, so the suite reveals it before auditing.
+
+The suite also seeds two temporary event records before auditing and deletes them afterwards, so the event card, status pill, and muted text styles are covered and not just the empty state.
 
 ---
 
@@ -191,7 +263,7 @@ The sign-in page's **Forgot your password** block is only visible once a profile
 | Service worker support | `'serviceWorker' in navigator` |
 | The worker is active and controlling | `navigator.serviceWorker.ready` and `navigator.serviceWorker.controller` |
 | The cached shell exists | `caches.match('../index.html')` |
-| Required assets are cached | `caches.match` for `../js/app.js`, `../css/base.css?v=2`, `../manifest.webmanifest`, and the sign-in and sign-up assets |
+| Required assets are cached | `caches.match` for `../js/app.js?v=8`, `../css/base.css?v=2`, `../manifest.webmanifest`, and the sign-in and sign-up assets |
 | Every referenced asset is precached | The pages are fetched, their `href`/`src` attributes and one level of module imports are collected, and each URL is checked against the cache |
 | The shell survives another page | The cached `index.html` is compared with the sign-in page, so a navigation cannot silently replace the app shell |
 
@@ -251,8 +323,27 @@ Use this for release verification. It maps to the requirements in `TimeNest_Appl
 - [ ] The grid shows the correct month and weekday alignment.
 - [ ] Previous and next month navigate correctly, including across a year boundary.
 - [ ] **Today** returns to the current month.
-- [ ] Reminder and diary markers appear on the right days.
-- [ ] Clicking a date lists that date's reminders and diary entries.
+- [ ] Reminder, diary, and event markers appear on the right days.
+- [ ] A multi-day event marks every day it covers.
+- [ ] Clicking a date lists that date's reminders, diary entries, and events.
+
+### Events
+
+- [ ] Create an event with a title, date, category, and location — it appears in the list.
+- [ ] Edit the event; changes persist after a reload.
+- [ ] Delete the event; a confirmation is required.
+- [ ] **Upcoming** shows today and future events; **Past** shows earlier ones; **All** shows both.
+- [ ] An event dated today is badged *Happening today*.
+- [ ] Search by title and by location matches.
+- [ ] Filter by category narrows the list.
+- [ ] An end date before the start date is rejected with a message.
+- [ ] An end time before the start time is rejected with a message.
+- [ ] Cancelling the event dims it, badges it *Cancelled*, and offers a **Restore** action.
+- [ ] Restoring the event brings it back to *Upcoming*.
+- [ ] A cancelled event disappears from the dashboard's "Events" count and "Upcoming events" panel.
+- [ ] The dashboard's "Events" stat card counts upcoming events.
+- [ ] The calendar shows an event marker, and the selected-date panel lists the event.
+- [ ] Export includes events; importing that file restores them.
 
 ### Notifications
 
@@ -278,7 +369,7 @@ Use this for release verification. It maps to the requirements in `TimeNest_Appl
 - [ ] The correct password signs in.
 - [ ] **Change password** rejects a wrong current password and accepts a valid new one.
 - [ ] The old password stops working after a change.
-- [ ] **Delete profile** keeps the reminders and diary entries.
+- [ ] **Delete profile** keeps the reminders, diary entries, and events.
 - [ ] **Reset the local profile** on the sign-in page removes the password and keeps the data.
 - [ ] Both auth pages load with the network disabled.
 
@@ -287,7 +378,7 @@ Use this for release verification. It maps to the requirements in `TimeNest_Appl
 - [ ] Switching the theme to dark and reloading keeps the dark theme.
 - [ ] Changing the default lead time affects newly created reminders.
 - [ ] Changing the default reminder time affects newly created reminders.
-- [ ] Export produces a JSON file containing reminders, diary entries, and settings.
+- [ ] Export produces a JSON file containing reminders, diary entries, events, and settings.
 - [ ] Importing that file in merge mode adds nothing and reports the duplicates.
 - [ ] Importing it in replace mode restores the data exactly.
 - [ ] Importing a malformed file fails with a clear message and changes nothing.
