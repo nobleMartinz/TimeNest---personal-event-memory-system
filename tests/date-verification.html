@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TimeNest date verification</title>
+  <style>
+    body { background: #f7f8f5; color: #1d2a24; font: 16px/1.5 system-ui, sans-serif; margin: 0; padding: 2rem; }
+    main { background: #fff; border: 1px solid #e0e6df; border-radius: 12px; margin: auto; max-width: 720px; padding: 2rem; }
+    .pass { color: #1f5a4f; }
+    .fail { color: #b64d43; }
+    li { margin-block: 0.4rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>TimeNest date verification</h1>
+    <p id="status">Running date and recurrence checks...</p>
+    <ul id="results"></ul>
+  </main>
+  <script type="module">
+    import { runDateVerification } from '../js/services/date-verification.js';
+
+    const status = document.querySelector('#status');
+    const results = document.querySelector('#results');
+
+    try {
+      const report = runDateVerification();
+      status.className = 'pass';
+      status.textContent = `PASS: ${report.checks.length} date and recurrence checks passed.`;
+      report.checks.forEach((check) => {
+        const item = document.createElement('li');
+        item.textContent = check;
+        results.append(item);
+      });
+    } catch (error) {
+      status.className = 'fail';
+      status.textContent = `FAIL: ${error.message}`;
+      console.error(error);
+    }
+  </script>
+</body>
+</html>

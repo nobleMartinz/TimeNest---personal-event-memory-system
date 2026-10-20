@@ -1,0 +1,276 @@
+.app-view[hidden] {
+  display: none;
+}
+
+.page-header--compact {
+  align-items: flex-end;
+  margin-bottom: var(--space-6);
+}
+
+.reminders-toolbar {
+  align-items: center;
+  background: var(--color-surface-inset);
+  border: var(--border-thin);
+  border-radius: var(--radius-sm);
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+}
+
+.reminders-filter {
+  max-width: 220px;
+  min-height: 44px;
+}
+
+.reminder-list {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.reminder-card {
+  align-items: center;
+  background: var(--color-surface);
+  border: var(--border-thin);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: minmax(0, 1fr) minmax(170px, auto) auto;
+  padding: var(--space-5);
+}
+
+.reminder-card__main {
+  min-width: 0;
+}
+
+.reminder-card__title-row {
+  align-items: center;
+  display: flex;
+  gap: var(--space-3);
+}
+
+.reminder-card__title-row h3 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.category-dot {
+  background: var(--color-coral);
+  border-radius: 50%;
+  flex: 0 0 auto;
+  height: 10px;
+  width: 10px;
+}
+
+.reminder-card__meta,
+.reminder-card__notes,
+.reminder-card__date span {
+  color: var(--color-ink-muted);
+  font-size: var(--text-sm);
+}
+
+.reminder-card__meta {
+  margin-top: var(--space-2);
+}
+
+.reminder-card__notes {
+  margin-top: var(--space-3);
+  max-width: 600px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reminder-card__date {
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+
+.reminder-card__date strong {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 500;
+}
+
+.reminder-card__actions {
+  align-items: center;
+  display: flex;
+  gap: var(--space-2);
+}
+
+.button--small {
+  min-height: 44px;
+  padding: 0.45rem 0.7rem;
+}
+
+.icon-button--light {
+  background: var(--color-surface-soft);
+  color: var(--color-ink);
+}
+
+.icon-button--light:hover {
+  background: var(--color-accent-soft);
+  color: var(--color-accent-dark);
+}
+
+.status--muted {
+  background: var(--color-surface-soft);
+  color: var(--color-ink-muted);
+}
+
+.modal-dialog {
+  background: transparent;
+  border: 0;
+  margin: auto;
+  max-height: calc(100vh - 2rem);
+  max-width: 620px;
+  padding: 0;
+  width: calc(100% - 2rem);
+}
+
+.modal-dialog[open] {
+  display: block;
+}
+
+.modal-dialog::backdrop {
+  background: rgba(18, 29, 24, 0.58);
+}
+
+.modal-dialog .modal {
+  max-width: none;
+}
+
+.form-grid {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.form-grid .form-field {
+  min-width: 0;
+}
+
+.form-grid .form-field + .form-field {
+  margin-top: 0;
+}
+
+.form-field--full {
+  grid-column: 1 / -1;
+}
+
+.detail-heading {
+  align-items: flex-start;
+  display: flex;
+  justify-content: space-between;
+}
+
+.detail-heading h2 {
+  margin-bottom: var(--space-3);
+}
+
+.detail-list {
+  border-bottom: var(--border-thin);
+  border-top: var(--border-thin);
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: var(--space-6) 0;
+  padding: var(--space-5) 0;
+}
+
+.detail-list div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.detail-list dt {
+  color: var(--color-ink-muted);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.detail-list dd {
+  margin: 0;
+}
+
+.detail-notes,
+.detail-history {
+  margin-top: var(--space-6);
+}
+
+.detail-notes p,
+.detail-muted {
+  margin-top: var(--space-2);
+  white-space: pre-wrap;
+}
+
+.completion-history {
+  display: grid;
+  gap: var(--space-2);
+  list-style: none;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+}
+
+.completion-history li {
+  align-items: center;
+  background: var(--color-surface-inset);
+  border-radius: var(--radius-sm);
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-3);
+}
+
+.completion-history span {
+  color: var(--color-ink-muted);
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 720px) {
+  .page-header--compact {
+    align-items: flex-start;
+  }
+
+  .page-header--compact .button {
+    width: 100%;
+  }
+
+  .reminders-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .reminders-filter {
+    max-width: none;
+  }
+
+  .reminder-card {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .reminder-card__date {
+    align-items: flex-start;
+  }
+
+  .reminder-card__actions {
+    justify-content: space-between;
+  }
+
+  .form-grid,
+  .detail-list {
+    grid-template-columns: 1fr;
+  }
+
+  .completion-history li {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

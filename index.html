@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="TimeNest keeps important reminders, recurring activities, and personal memories in one calm place.">
+  <meta name="theme-color" content="#2d7567">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="assets/icons/timenest-192.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/icons/timenest-192.svg">
+  <title>TimeNest | Personal event memory system</title>
+  <link rel="stylesheet" href="css/reset.css">
+  <link rel="stylesheet" href="css/variables.css?v=2">
+  <link rel="stylesheet" href="css/base.css?v=2">
+  <link rel="stylesheet" href="css/layout.css?v=4">
+  <link rel="stylesheet" href="css/components.css?v=2">
+  <link rel="stylesheet" href="css/forms.css">
+  <link rel="stylesheet" href="css/dashboard.css?v=1">
+  <link rel="stylesheet" href="css/reminders.css?v=4">
+  <link rel="stylesheet" href="css/diary.css">
+  <link rel="stylesheet" href="css/calendar.css?v=1">
+  <link rel="stylesheet" href="css/settings.css">
+  <link rel="stylesheet" href="css/responsive.css?v=4">
+</head>
+<body>
+  <div class="connection-status" id="connection-status" role="status" aria-live="polite" hidden>
+    <span class="connection-status__dot" aria-hidden="true"></span><span data-connection-message>Offline: using saved TimeNest files.</span>
+  </div>
+  <div class="update-notice" id="update-notice" role="status" aria-live="polite" hidden>
+    <span>A TimeNest update is ready.</span><button class="button button--small button--secondary" type="button" id="apply-update">Reload</button>
+  </div>
+  <div class="app-shell">
+    <header class="mobile-header">
+      <a class="brand brand--compact" href="#dashboard" aria-label="TimeNest dashboard">
+        <span class="brand-mark" aria-hidden="true">TN</span>
+        <span>TimeNest</span>
+      </a>
+      <button class="icon-button" type="button" aria-label="Open navigation" data-menu-toggle>
+        <span aria-hidden="true">☰</span>
+      </button>
+    </header>
+
+    <aside class="sidebar" data-sidebar>
+      <div class="sidebar__topline">
+        <a class="brand" href="#dashboard" aria-label="TimeNest dashboard">
+          <span class="brand-mark" aria-hidden="true">TN</span>
+          <span>
+            <strong>TimeNest</strong>
+            <small>personal event memory system</small>
+          </span>
+        </a>
+        <button class="icon-button sidebar__close" type="button" aria-label="Close navigation" data-menu-close>
+          <span aria-hidden="true">×</span>
+        </button>
+      </div>
+
+      <nav class="primary-nav" aria-label="Primary navigation">
+        <p class="nav-label">Workspace</p>
+        <a class="nav-link is-active" href="#dashboard" aria-current="page">
+          <span class="nav-link__icon" aria-hidden="true">◫</span>
+          <span>Dashboard</span>
+        </a>
+        <a class="nav-link" href="#reminders">
+          <span class="nav-link__icon" aria-hidden="true">◷</span>
+          <span>Reminders</span>
+        </a>
+        <a class="nav-link" href="#diary">
+          <span class="nav-link__icon" aria-hidden="true">▤</span>
+          <span>Diary</span>
+        </a>
+        <a class="nav-link" href="#calendar">
+          <span class="nav-link__icon" aria-hidden="true">□</span>
+          <span>Calendar</span>
+        </a>
+
+        <p class="nav-label nav-label--spaced">Manage</p>
+        <a class="nav-link" href="#settings">
+          <span class="nav-link__icon" aria-hidden="true">⚙</span>
+          <span>Settings</span>
+        </a>
+      </nav>
+
+      <div class="sidebar__footer">
+        <div class="privacy-note">
+          <span class="privacy-note__icon" aria-hidden="true">✦</span>
+          <div>
+            <strong>Your space stays yours</strong>
+            <p>TimeNest stores your memories on this device.</p>
+          </div>
+        </div>
+        <small class="sidebar__version">TimeNest MVP · Local first</small>
+      </div>
+    </aside>
+
+    <div class="sidebar-backdrop" data-menu-close></div>
+
+    <main class="main-content" id="dashboard">
+      <header class="page-header">
+        <div>
+          <p class="eyebrow" data-dashboard-date>Saturday, September 12, 2026</p>
+          <h1>Good morning, make today count.</h1>
+          <p class="page-header__summary">A clear view of what needs your attention and what is worth remembering.</p>
+        </div>
+        <div class="page-header__actions">
+          <button class="button button--secondary" type="button" data-open-diary-form>
+            <span aria-hidden="true">+</span>
+            Add diary entry
+          </button>
+          <button class="button button--primary" type="button" data-open-reminder-form>
+            <span aria-hidden="true">+</span>
+            Add reminder
+          </button>
+        </div>
+      </header>
+
+      <section class="stats-grid" aria-label="Today at a glance">
+        <article class="stat-card stat-card--accent">
+          <div class="stat-card__header">
+            <span class="stat-card__label">Due today</span>
+            <span class="stat-card__icon" aria-hidden="true">◷</span>
+          </div>
+          <strong class="stat-card__value" data-dashboard-value="today">0</strong>
+          <p>Nothing pressing today</p>
+        </article>
+        <article class="stat-card">
+          <div class="stat-card__header">
+            <span class="stat-card__label">Coming up</span>
+            <span class="stat-card__icon" aria-hidden="true">→</span>
+          </div>
+          <strong class="stat-card__value" data-dashboard-value="upcoming">0</strong>
+          <p>In the next 7 days</p>
+        </article>
+        <article class="stat-card stat-card--warning">
+          <div class="stat-card__header">
+            <span class="stat-card__label">Overdue</span>
+            <span class="stat-card__icon" aria-hidden="true">!</span>
+          </div>
+          <strong class="stat-card__value" data-dashboard-value="overdue">0</strong>
+          <p>All caught up</p>
+        </article>
+      </section>
+
+      <div class="dashboard-grid">
+        <section class="content-panel content-panel--wide" aria-labelledby="upcoming-title">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Stay one step ahead</p>
+              <h2 id="upcoming-title">Upcoming reminders</h2>
+            </div>
+            <a class="text-link" href="#reminders">View all <span aria-hidden="true">→</span></a>
+          </div>
+          <div id="upcoming-reminders-list" class="dashboard-list" aria-live="polite"></div>
+        </section>
+
+        <section class="content-panel" aria-labelledby="diary-title">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">A place for the details</p>
+              <h2 id="diary-title">Recent diary</h2>
+            </div>
+            <a class="text-link" href="#diary">Open diary <span aria-hidden="true">→</span></a>
+          </div>
+          <div id="recent-diary-list" class="dashboard-list" aria-live="polite"></div>
+        </section>
+      </div>
+
+      <section class="content-panel overdue-panel" aria-labelledby="overdue-title">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Bring it back into view</p>
+            <h2 id="overdue-title">Overdue reminders</h2>
+          </div>
+          <a class="text-link" href="#reminders">Manage reminders <span aria-hidden="true">→</span></a>
+        </div>
+        <div id="overdue-reminders-list" class="dashboard-list" aria-live="polite"></div>
+      </section>
+
+      <section class="content-panel history-panel" aria-labelledby="history-title">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">A quiet look back</p>
+            <h2 id="history-title">Recently completed</h2>
+          </div>
+          <span class="panel-meta">No activity yet</span>
+        </div>
+        <div id="recent-completed-list" class="dashboard-list" aria-live="polite"></div>
+      </section>
+
+      <section class="app-view reminders-view" id="reminders-view" aria-labelledby="reminders-title" hidden>
+        <header class="page-header page-header--compact">
+          <div>
+            <p class="eyebrow">Keep the important things moving</p>
+            <h1 id="reminders-title">Reminders</h1>
+            <p class="page-header__summary">Plan once, then let TimeNest keep the next date in view.</p>
+          </div>
+          <button class="button button--primary" type="button" data-open-reminder-form><span aria-hidden="true">+</span> Add reminder</button>
+        </header>
+        <div class="reminders-toolbar">
+          <label class="form-label" for="reminder-filter">Show</label>
+          <select class="form-control reminders-filter" id="reminder-filter">
+            <option value="active">Active reminders</option>
+            <option value="completed">Completed reminders</option>
+            <option value="archived">Archived reminders</option>
+            <option value="all">All reminders</option>
+          </select>
+        </div>
+        <div id="reminder-list" class="reminder-list" aria-live="polite"></div>
+      </section>
+
+      <section class="app-view diary-view" id="diary-view" aria-labelledby="diary-page-title" hidden>
+        <header class="page-header page-header--compact">
+          <div>
+            <p class="eyebrow">Keep the details close</p>
+            <h1 id="diary-page-title">Diary</h1>
+            <p class="page-header__summary">A searchable record of the moments, decisions, and details you want to keep.</p>
+          </div>
+          <button class="button button--primary" type="button" data-open-diary-form><span aria-hidden="true">+</span> Add diary entry</button>
+        </header>
+        <div class="diary-toolbar">
+          <label class="form-label diary-search-label" for="diary-search">Search</label>
+          <input class="form-control" id="diary-search" type="search" placeholder="Search title or entry...">
+          <label class="form-label" for="diary-category-filter">Category</label>
+          <select class="form-control" id="diary-category-filter"><option value="">All categories</option></select>
+          <label class="form-label" for="diary-date-filter">Date</label>
+          <input class="form-control" id="diary-date-filter" type="date">
+          <label class="form-label" for="diary-sort">Sort</label>
+          <select class="form-control" id="diary-sort"><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="title">Title A-Z</option></select>
+        </div>
+        <div id="diary-list" class="diary-list" aria-live="polite"></div>
+      </section>
+
+      <section class="app-view calendar-view" id="calendar-view" aria-labelledby="calendar-page-title" hidden>
+        <header class="page-header page-header--compact">
+          <div><p class="eyebrow">See your time in context</p><h1 id="calendar-page-title">Calendar</h1><p class="page-header__summary">Reminders and diary entries, gathered by date.</p></div>
+          <div class="calendar-actions"><button class="button button--secondary" type="button" data-calendar-today>Today</button><button class="icon-button icon-button--light" type="button" aria-label="Previous month" data-calendar-prev>←</button><button class="icon-button icon-button--light" type="button" aria-label="Next month" data-calendar-next>→</button></div>
+        </header>
+        <section class="calendar-panel" aria-labelledby="calendar-title"><div class="calendar-heading"><h2 id="calendar-title">Calendar</h2><div class="calendar-legend"><span><i class="calendar-marker calendar-marker--diary"></i> Diary</span><span><i class="calendar-marker calendar-marker--reminder"></i> Reminder</span></div></div><div class="calendar-weekdays" aria-hidden="true"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div><div class="calendar-grid" id="calendar-grid"></div></section>
+        <section class="calendar-selection content-panel" aria-labelledby="calendar-selected-date"><p class="eyebrow">Selected date</p><h2 id="calendar-selected-date">Today</h2><div id="calendar-selected-items"></div></section>
+      </section>
+
+      <section class="app-view settings-view" id="settings-view" aria-labelledby="settings-page-title" hidden>
+        <header class="page-header page-header--compact"><div><p class="eyebrow">Make TimeNest work your way</p><h1 id="settings-page-title">Settings</h1><p class="page-header__summary">Notification controls stay transparent and private on this device.</p></div></header>
+        <section class="content-panel settings-panel" aria-labelledby="notification-settings-title">
+          <div class="panel-heading"><div><p class="eyebrow">Browser notifications</p><h2 id="notification-settings-title">Reminder notifications</h2></div><span class="status status--upcoming">Local only</span></div>
+          <p class="settings-status" id="notification-status-text">Checking notification support...</p>
+          <p class="settings-permission" id="notification-permission">Permission: checking</p>
+          <div class="settings-options">
+            <label class="settings-toggle"><input type="checkbox" id="notifications-enabled"><span><strong>Enable reminder notifications</strong><small>Check eligible reminders when TimeNest opens or when you check manually.</small></span></label>
+            <label class="settings-toggle"><input type="checkbox" id="overdue-notifications-enabled"><span><strong>Include overdue reminders</strong><small>Allow one notification per overdue reminder per day.</small></span></label>
+          </div>
+          <div class="settings-actions"><button class="button button--primary" type="button" id="request-notification-permission">Allow notifications</button><button class="button button--secondary" type="button" id="check-notifications">Check reminders now</button></div>
+          <p class="settings-check-result" id="notification-check-result" aria-live="polite"></p>
+          <div class="settings-note"><strong>About browser notifications</strong><p>Browser permissions and device settings control whether notifications appear. An ordinary browser tab cannot always wake at an exact future time, so TimeNest checks when the app opens or when you run a check. A future push service can extend this without changing your reminder data.</p></div>
+        </section>
+        <section class="content-panel settings-panel" aria-labelledby="preferences-title">
+          <div class="panel-heading"><div><p class="eyebrow">Preferences</p><h2 id="preferences-title">Appearance and reminder defaults</h2></div></div>
+          <div class="settings-fields">
+            <label class="form-field"><span class="form-label">Theme</span><select class="form-control" id="theme-select"><option value="system">Use device setting</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
+            <label class="form-field"><span class="form-label">Default reminder lead time</span><input class="form-control" id="default-reminder-days" type="number" min="0" step="1"><small>Days before the due date.</small></label>
+            <label class="form-field"><span class="form-label">Default reminder time</span><input class="form-control" id="default-reminder-time" type="time"><small>Used for newly created reminders.</small></label>
+          </div>
+          <div class="settings-actions"><button class="button button--primary" type="button" id="save-preferences">Save preferences</button></div>
+        </section>
+        <section class="content-panel settings-panel" aria-labelledby="account-title">
+          <div class="panel-heading"><div><p class="eyebrow">Your profile</p><h2 id="account-title">Account and access</h2></div><span class="status status--upcoming" id="account-status-badge">Device only</span></div>
+          <p class="settings-status" id="account-status-text">Checking profile status...</p>
+          <div class="settings-fields" id="account-fields" hidden>
+            <label class="form-field"><span class="form-label">Display name</span><input class="form-control" id="account-display-name" type="text" maxlength="80" placeholder="Your name"></label>
+            <label class="form-field"><span class="form-label">Email address</span><input class="form-control" id="account-email" type="email" maxlength="254" placeholder="you@example.com"></label>
+          </div>
+          <div class="settings-actions" id="account-actions"></div>
+          <div class="settings-note"><strong>About local profiles</strong><p>A profile is stored only on this device and simply puts a password around your own data. TimeNest never sends your email, reminders, or diary entries to a server. If you clear your browser data, the profile and everything it protects are removed together.</p></div>
+        </section>
+        <section class="content-panel settings-panel" aria-labelledby="data-title">
+          <div class="panel-heading"><div><p class="eyebrow">Your local data</p><h2 id="data-title">Export, import, or clear</h2></div></div>
+          <p class="settings-permission">Exports include reminders, diary entries, and preferences. Imported files are validated before any data changes.</p>
+          <div class="settings-fields settings-fields--data"><label class="form-field"><span class="form-label">Import behavior</span><select class="form-control" id="import-mode"><option value="merge">Merge (keep existing duplicates)</option><option value="replace">Replace all existing data</option></select></label><label class="form-field"><span class="form-label">TimeNest JSON file</span><input class="form-control" id="import-file" type="file" accept="application/json,.json"></label></div>
+          <div class="settings-actions"><button class="button button--secondary" type="button" id="export-data">Export JSON</button><button class="button button--primary" type="button" id="import-data">Import JSON</button><button class="button button--danger" type="button" id="clear-all-data">Clear all data</button></div>
+          <p class="settings-check-result" id="data-transfer-result" aria-live="polite"></p>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <dialog class="modal-dialog" id="reminder-form-dialog" aria-labelledby="reminder-form-title">
+    <form class="modal" id="reminder-form" method="dialog">
+      <div class="modal__header"><h2 id="reminder-form-title">Add reminder</h2><button class="icon-button icon-button--light" type="button" aria-label="Close reminder form" data-close-dialog="reminder-form-dialog">×</button></div>
+      <div class="modal__body form-grid">
+        <div class="form-field form-field--full"><label class="form-label" for="reminder-title">Title</label><input class="form-control" id="reminder-title" name="title" required maxlength="120" placeholder="e.g. Car service"></div>
+        <div class="form-field"><label class="form-label" for="reminder-category">Category</label><input class="form-control" id="reminder-category" name="category" maxlength="60" value="General"></div>
+        <div class="form-field"><label class="form-label" for="reminder-date">Due date</label><input class="form-control" id="reminder-date" name="nextDueDate" type="date" required></div>
+        <div class="form-field"><label class="form-label" for="reminder-time">Time <span class="form-hint">optional</span></label><input class="form-control" id="reminder-time" name="reminderTime" type="time"></div>
+        <div class="form-field"><label class="form-label" for="recurrence-type">Repeats</label><select class="form-control" id="recurrence-type" name="recurrenceType"><option value="once">One time</option><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="yearly">Yearly</option><option value="custom">Custom interval</option></select></div>
+        <div class="form-field" id="recurrence-interval-field"><label class="form-label" for="recurrence-interval">Every</label><input class="form-control" id="recurrence-interval" name="recurrenceInterval" type="number" min="1" step="1" value="1"></div>
+        <div class="form-field" id="custom-unit-field"><label class="form-label" for="custom-unit">Unit</label><select class="form-control" id="custom-unit" name="customUnit"><option value="days">Days</option><option value="weeks">Weeks</option><option value="months">Months</option><option value="years">Years</option></select></div>
+        <div class="form-field"><label class="form-label" for="reminder-days">Remind me days before</label><input class="form-control" id="reminder-days" name="reminderDaysBefore" type="number" min="0" step="1" value="7"></div>
+        <div class="form-field form-field--full"><label class="form-label" for="reminder-notes">Notes <span class="form-hint">optional</span></label><textarea class="form-control" id="reminder-notes" name="notes" maxlength="2000" placeholder="Add context you will want later..."></textarea></div>
+      </div>
+      <div class="modal__footer"><button class="button button--secondary" type="button" data-close-dialog="reminder-form-dialog">Cancel</button><button class="button button--primary" type="submit">Save reminder</button></div>
+    </form>
+  </dialog>
+
+  <dialog class="modal-dialog" id="reminder-detail-dialog" aria-labelledby="reminder-detail-title">
+    <div class="modal" id="reminder-detail-content"></div>
+  </dialog>
+
+  <dialog class="modal-dialog" id="diary-form-dialog" aria-labelledby="diary-form-title">
+    <form class="modal" id="diary-form" method="dialog">
+      <div class="modal__header"><h2 id="diary-form-title">Add diary entry</h2><button class="icon-button icon-button--light" type="button" aria-label="Close diary form" data-close-dialog="diary-form-dialog">×</button></div>
+      <div class="modal__body form-grid">
+        <div class="form-field"><label class="form-label" for="diary-date">Date</label><input class="form-control" id="diary-date" name="date" type="date" required></div>
+        <div class="form-field"><label class="form-label" for="diary-time">Time <span class="form-hint">optional</span></label><input class="form-control" id="diary-time" name="time" type="time"></div>
+        <div class="form-field"><label class="form-label" for="diary-category">Category</label><input class="form-control" id="diary-category" name="category" maxlength="60" value="General"></div>
+        <div class="form-field form-field--full"><label class="form-label" for="diary-title-input">Title</label><input class="form-control" id="diary-title-input" name="title" required maxlength="120" placeholder="What do you want to remember?"></div>
+        <div class="form-field form-field--full"><label class="form-label" for="diary-content">Entry</label><textarea class="form-control" id="diary-content" name="content" required maxlength="5000" placeholder="Write a few details..."></textarea></div>
+      </div>
+      <div class="modal__footer"><button class="button button--secondary" type="button" data-close-dialog="diary-form-dialog">Cancel</button><button class="button button--primary" type="submit">Save entry</button></div>
+    </form>
+  </dialog>
+
+  <dialog class="modal-dialog" id="diary-detail-dialog" aria-labelledby="diary-detail-title">
+    <div class="modal" id="diary-detail-content"></div>
+  </dialog>
+
+  <dialog class="modal-dialog" id="account-password-dialog" aria-labelledby="account-password-title">
+    <form class="modal" id="account-password-form" method="dialog">
+      <div class="modal__header"><h2 id="account-password-title">Change password</h2><button class="icon-button icon-button--light" type="button" aria-label="Close password form" data-close-dialog="account-password-dialog">×</button></div>
+      <div class="modal__body form-grid">
+        <div class="form-field form-field--full"><label class="form-label" for="account-current-password">Current password</label><input class="form-control" id="account-current-password" name="currentPassword" type="password" autocomplete="current-password" required></div>
+        <div class="form-field form-field--full"><label class="form-label" for="account-new-password">New password</label><input class="form-control" id="account-new-password" name="newPassword" type="password" autocomplete="new-password" required minlength="8"><small class="form-hint">At least 8 characters.</small></div>
+      </div>
+      <div class="modal__footer"><button class="button button--secondary" type="button" data-close-dialog="account-password-dialog">Cancel</button><button class="button button--primary" type="submit">Update password</button></div>
+    </form>
+  </dialog>
+
+  <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
+
+  <script type="module" src="js/app.js?v=6"></script>
+</body>
+</html>

@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TimeNest authentication verification</title>
+  <style>
+    body { background: #f7f8f5; color: #1d2a24; font: 16px/1.5 system-ui, sans-serif; margin: 0; padding: 2rem; }
+    main { background: #fff; border: 1px solid #e0e6df; border-radius: 12px; margin: auto; max-width: 720px; padding: 2rem; }
+    .pass { color: #1f5a4f; } .fail { color: #b64d43; } li { margin-block: .4rem; } code { background: #eef1ec; border-radius: 4px; padding: .15rem .3rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>TimeNest authentication verification</h1>
+    <p id="status">Running account and session checks...</p>
+    <ul id="results"></ul>
+  </main>
+  <script type="module">
+    import {
+      AuthError,
+      MINIMUM_PASSWORD_LENGTH,
+      createAccount,
+      deleteAccount,
+      getAuthState,
+      getCurrentAccount,
+      hashPassword,
+      resetLocalProfile,
+      signIn,
+      signOut,
+      verifyPassword
+    } from '../js/services/auth-service.js';
+
+    const status = document.querySelector('#status');
+    const results = document.querySelector('#results');
+    const checks = [];
+
+    const check = (label, condition) => {
+      if (!condition) throw new Error(`${label}: assertion failed`);
+      checks.push(label);
+    };
+
+    const expectError = async (label, code, run) => {
+      try {
+        await run();
+      } catch (error) {
+        check(`${label} rejected with ${code}`, error instanceof AuthError && error.code === code);
+        return;
+      }
+      throw new Error(`${label}: expected an error with code ${code}`);
+    };
+
+    const suffix = Date.now();
+    const email = `verify-${suffix}@timenest.test`;
+    const password = 'correct-horse-battery';
+    let accountId = null;
+    let createdProfile = false;
+
+    try {
+      const record = await hashPassword(password);
+      check('password hash stored as base64 salt and key', Boolean(record.salt && record.passwordHash));
+      check('password hash uses PBKDF2 with SHA-256', record.algorithm === 'PBKDF2' && record.hash === 'SHA-256');
+      check('password hash uses 600000 iterations', record.iterations === 600000);
+      check('salted hash verifies against the correct password', await verifyPassword(password, record) === true);
+      check('salted hash rejects a wrong password', await verifyPassword('wrong-password', record) === false);
+      check('hash of the same password twice differs by salt', (await hashPassword(password)).passwordHash !== record.passwordHash);
+
+      const account = await createAccount({ displayName: 'Verification User', email, password });
+      accountId = account.id;
+      createdProfile = true;
+      check('account is created with an id', Boolean(account.id));
+      check('account email is normalised to lowercase', account.email === email);
+      check('account never exposes the password hash', !('passwordHash' in account) && !('salt' in account));
+
+      await expectError('a duplicate email', 'email_taken', () => createAccount({ displayName: 'Other', email, password }));
+      await expectError('a missing display name', 'name_required', () => createAccount({ displayName: '  ', email: `x-${suffix}@timenest.test`, password }));
+      await expectError('an invalid email', 'email_invalid', () => createAccount({ displayName: 'Other', email: 'not-an-email', password }));
+      await expectError('a short password', 'password_short', () => createAccount({ displayName: 'Other', email: `y-${suffix}@timenest.test`, password: 'short' }));
+      check('minimum password length is 8 characters', MINIMUM_PASSWORD_LENGTH === 8);
+
+      await signIn({ email, password });
+      const signedIn = await getCurrentAccount();
+      check('sign in creates an active session', Boolean(signedIn && signedIn.id === accountId));
+
+      let authState = await getAuthState();
+      check('auth state reports an account and an authenticated session', authState.hasAccount === true && authState.isAuthenticated === true);
+
+      await expectError('an unknown email', 'invalid_credentials', () => signIn({ email: `missing-${suffix}@timenest.test`, password }));
+      await expectError('a wrong password', 'invalid_credentials', () => signIn({ email, password: 'definitely-wrong' }));
+
+      await signOut();
+      authState = await getAuthState();
+      check('sign out clears the session', authState.isAuthenticated === false);
+      check('sign out keeps the account on the device', authState.hasAccount === true);
+
+      await signIn({ email, password });
+      check('sign in works again after signing out', (await getCurrentAccount())?.id === accountId);
+
+      await expectError('a second profile on one device', 'profile_exists', () => createAccount({ displayName: 'Second', email: `second-${suffix}@timenest.test`, password }));
+
+      await deleteAccount(accountId);
+      accountId = null;
+      authState = await getAuthState();
+      check('deleting the account removes it', authState.hasAccount === false);
+      check('deleting the account clears the session', authState.isAuthenticated === false);
+
+      const resetAccount = await createAccount({ displayName: 'Reset User', email: `reset-${suffix}@timenest.test`, password });
+      accountId = resetAccount.id;
+      await resetLocalProfile();
+      accountId = null;
+      authState = await getAuthState();
+      check('resetting the local profile removes the account', authState.hasAccount === false);
+      check('resetting the local profile clears the session', authState.isAuthenticated === false);
+      createdProfile = false;
+
+      status.className = 'pass';
+      status.textContent = `PASS: ${checks.length} authentication checks passed.`;
+      checks.forEach((label) => {
+        const item = document.createElement('li');
+        item.textContent = label;
+        results.append(item);
+      });
+    } catch (error) {
+      status.className = 'fail';
+      status.textContent = `FAIL: ${error.message}`;
+      const item = document.createElement('li');
+      item.textContent = error.message;
+      results.append(item);
+      console.error(error);
+    } finally {
+      if (accountId) {
+        try {
+          await deleteAccount(accountId);
+        } catch {
+          // The verification record could not be cleaned up.
+        }
+      }
+      if (createdProfile) {
+        try {
+          await resetLocalProfile();
+        } catch {
+          // The verification profile could not be cleaned up.
+        }
+      }
+      await signOut().catch(() => {});
+    }
+  </script>
+</body>
+</html>

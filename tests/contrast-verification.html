@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TimeNest contrast verification</title>
+  <style>
+    body { background: #f7f8f5; color: #1d2a24; font: 16px/1.5 system-ui, sans-serif; margin: 0; padding: 2rem; }
+    main { background: #fff; border: 1px solid #e0e6df; border-radius: 12px; margin: auto; max-width: 900px; padding: 2rem; }
+    .pass { color: #1f5a4f; } .fail { color: #b64d43; } li { margin-block: .4rem; } code { background: #f1f4f0; border-radius: 4px; padding: .1rem .3rem; }
+    #stage { border: 1px solid #e0e6df; height: 0; overflow: hidden; width: 0; }
+    iframe { border: 0; height: 900px; width: 1280px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>TimeNest contrast verification</h1>
+    <p id="status">Checking text contrast in the light and dark themes…</p>
+    <ul id="results"></ul>
+  </main>
+
+  <div id="stage" aria-hidden="true"><iframe id="frame" title="contrast probe"></iframe></div>
+
+  <script type="module">
+    const status = document.querySelector('#status');
+    const results = document.querySelector('#results');
+    const frame = document.querySelector('#frame');
+
+    const addResult = (message) => {
+      const item = document.createElement('li');
+      item.textContent = message;
+      results.append(item);
+    };
+
+    const addFailure = (message) => {
+      const item = document.createElement('li');
+      item.className = 'fail';
+      item.textContent = message;
+      results.append(item);
+    };
+
+    const settle = (ms = 700) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    function loadFrame(url) {
+      return new Promise((resolve) => {
+        frame.addEventListener('load', () => resolve(), { once: true });
+        // Clearing the source first forces a fresh document: navigating to a
+        // URL that differs only by the hash would not reload the frame.
+        frame.src = 'about:blank';
+        requestAnimationFrame(() => { frame.src = url; });
+      });
+    }
+
+    // Runs inside the iframe: every visible text node is compared against its
+    // effective background, following WCAG 2.1 relative luminance.
+    function auditFrame() {
+      const doc = frame.contentDocument;
+      const win = frame.contentWindow;
+
+      const parse = (value) => {
+        const match = value.match(/rgba?\(([^)]+)\)/);
+        if (!match) return null;
+        const parts = match[1].split(',').map((part) => parseFloat(part.trim()));
+        return { r: parts[0], g: parts[1], b: parts[2], a: parts.length > 3 ? parts[3] : 1 };
+      };
+
+      const luminance = ({ r, g, b }) => {
+        const channel = (value) => {
+          const scaled = value / 255;
+          return scaled <= 0.03928 ? scaled / 12.92 : ((scaled + 0.055) / 1.055) ** 2.4;
+        };
+        return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+      };
+
+      const effectiveBackground = (element) => {
+        const layers = [];
+        let node = element;
+        while (node && node !== doc.documentElement) {
+          const background = parse(win.getComputedStyle(node).backgroundColor);
+          if (background) layers.push(background);
+          if (background && background.a > 0.85) return background;
+          node = node.parentElement;
+        }
+        let base = { r: 255, g: 255, b: 255, a: 1 };
+        for (const layer of layers.reverse()) {
+          base = {
+            r: layer.r * layer.a + base.r * (1 - layer.a),
+            g: layer.g * layer.a + base.g * (1 - layer.a),
+            b: layer.b * layer.a + base.b * (1 - layer.a),
+            a: 1
+          };
+        }
+        return base;
+      };
+
+      const failures = [];
+      const seen = new Set();
+      const candidates = doc.querySelectorAll('p, a, label, button, h1, h2, h3, span, li, td, th, small, strong, em, div');
+
+      for (const node of candidates) {
+        if (!node.textContent.trim() || node.children.length > 0) continue;
+        const style = win.getComputedStyle(node);
+        if (style.visibility === 'hidden' || style.display === 'none') continue;
+        if (parseFloat(style.opacity) < 0.5) continue;
+        const rect = node.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) continue;
+
+        const foreground = parse(style.color);
+        if (!foreground) continue;
+        const background = effectiveBackground(node);
+
+        const first = luminance(foreground);
+        const second = luminance(background);
+        const ratio = (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05);
+
+        const size = parseFloat(style.fontSize);
+        const bold = parseInt(style.fontWeight, 10) >= 700;
+        const large = size >= 24 || (size >= 18.66 && bold);
+        const required = large ? 3 : 4.5;
+        if (ratio >= required) continue;
+
+        const key = `${node.tagName}.${node.className}|${node.textContent.trim().slice(0, 24)}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        failures.push({
+          ratio: Number(ratio.toFixed(2)),
+          required,
+          size,
+          selector: `${node.tagName.toLowerCase()}.${String(node.className || '-').split(' ')[0]}`,
+          text: node.textContent.trim().slice(0, 40)
+        });
+      }
+
+      return failures;
+    }
+
+    function applyTheme(theme) {
+      frame.contentDocument.documentElement.dataset.theme = theme;
+    }
+
+    const THEMES = ['light', 'dark'];
+    const ROUTES = ['#dashboard', '#reminders', '#diary', '#calendar', '#settings'];
+    let failureCount = 0;
+    let checkCount = 0;
+
+    function check(label, failures) {
+      checkCount += 1;
+      if (failures.length === 0) {
+        addResult(`PASS  ${label}`);
+        return;
+      }
+      failureCount += 1;
+      addFailure(`FAIL  ${label}`);
+      for (const failure of failures) {
+        addFailure(`      ${failure.selector} — ${failure.ratio}:1 (needs ${failure.required}) at ${failure.size}px — "${failure.text}"`);
+      }
+    }
+
+    // The authentication service is imported from the app so the probe can sign
+    // in, audit the protected screens, and clean up after itself.
+    const auth = await import('../js/services/auth-service.js');
+    let temporaryAccount = false;
+
+    try {
+      if (await auth.hasAccount()) {
+        addResult('NOTE  a profile already exists on this device, so the protected app screens were not audited.');
+      } else {
+        const account = await auth.createAccount({
+          displayName: 'Contrast Probe',
+          email: `contrast-probe-${Date.now()}@timenest.test`,
+          password: 'Probe-Pass-2026'
+        });
+        await auth.startSession(account.id, { remember: false });
+        temporaryAccount = true;
+        addResult('NOTE  a temporary profile was created for this run and will be removed at the end.');
+      }
+    } catch (error) {
+      addResult(`NOTE  could not prepare the probe account: ${error.message}`);
+    }
+
+    try {
+      for (const theme of THEMES) {
+        await loadFrame('../login.html');
+        await settle();
+        // The "forgot your password" block only shows once a profile exists, so
+        // it is revealed here to cover that state as well.
+        const resetBlock = frame.contentDocument.querySelector('#auth-reset-block');
+        if (resetBlock) resetBlock.hidden = false;
+        applyTheme(theme);
+        await settle(200);
+        check(`login.html (${theme})`, auditFrame());
+
+        await loadFrame('../signup.html');
+        await settle();
+        applyTheme(theme);
+        await settle(200);
+        check(`signup.html (${theme})`, auditFrame());
+
+        for (const route of ROUTES) {
+          await loadFrame(`../index.html${route}`);
+          await settle(900);
+          applyTheme(theme);
+          await settle(300);
+          check(`index.html ${route} (${theme})`, auditFrame());
+        }
+      }
+    } catch (error) {
+      failureCount += 1;
+      addFailure(`FAIL  the audit could not finish: ${error.message}`);
+    }
+
+    if (temporaryAccount) {
+      try {
+        await auth.resetLocalProfile();
+        addResult('NOTE  the temporary profile was removed.');
+      } catch (error) {
+        addFailure(`FAIL  the temporary profile could not be removed: ${error.message}`);
+      }
+    }
+
+    if (failureCount === 0) {
+      status.className = 'pass';
+      status.textContent = `PASS: ${checkCount} contrast checks passed across the light and dark themes.`;
+    } else {
+      status.className = 'fail';
+      status.textContent = `FAIL: ${failureCount} of ${checkCount} contrast checks failed.`;
+    }
+  </script>
+</body>
+</html>

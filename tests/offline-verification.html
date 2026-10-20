@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TimeNest offline verification</title>
+  <style>
+    body { background: #f7f8f5; color: #1d2a24; font: 16px/1.5 system-ui, sans-serif; margin: 0; padding: 2rem; }
+    main { background: #fff; border: 1px solid #e0e6df; border-radius: 12px; margin: auto; max-width: 720px; padding: 2rem; }
+    .pass { color: #1f5a4f; } .fail { color: #b64d43; } li { margin-block: .4rem; } button { background: #2d7567; border: 0; border-radius: 7px; color: #fff; cursor: pointer; font: inherit; padding: .65rem 1rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>TimeNest offline verification</h1>
+    <p id="status">Checking the service worker and cached shell…</p>
+    <ul id="results"></ul>
+    <button id="reload-offline" type="button" hidden>Reload while offline</button>
+  </main>
+  <script type="module">
+    const status = document.querySelector('#status');
+    const results = document.querySelector('#results');
+    const reloadButton = document.querySelector('#reload-offline');
+    const addResult = (message) => { const item = document.createElement('li'); item.textContent = message; results.append(item); };
+
+    try {
+      if (!('serviceWorker' in navigator)) throw new Error('Service workers are not supported by this browser.');
+      const registration = await navigator.serviceWorker.ready;
+      if (!navigator.serviceWorker.controller) throw new Error('Reload this page once so the active service worker controls it.');
+      addResult(`Active service worker: ${registration.active.scriptURL}`);
+      const shell = await caches.match(new URL('../index.html', window.location.href));
+      if (!shell) throw new Error('The cached app shell was not found. Open the app online, then reload this page.');
+      addResult('Cached index.html found.');
+      const required = [
+        '../js/app.js?v=6',
+        '../css/base.css?v=2',
+        '../manifest.webmanifest',
+        '../login.html',
+        '../signup.html',
+        '../css/auth.css?v=2',
+        '../js/services/auth-service.js',
+        '../js/pages/auth-page.js?v=2',
+        '../js/pages/login-entry.js?v=2',
+        '../js/pages/signup-entry.js?v=2'
+      ];
+      for (const path of required) {
+        if (!await caches.match(new URL(path, window.location.href))) throw new Error(`Missing cached shell asset: ${path}`);
+      }
+      addResult('Required JavaScript, CSS, and manifest assets are cached.');
+      addResult('The sign-in and sign-up pages are cached, so authentication works offline.');
+
+      // Every asset the pages actually request must be precached, otherwise the
+      // first offline load would fall back to the network and fail.
+      const cacheNames = await caches.keys();
+      const shellCache = await caches.open(cacheNames.find((name) => name.startsWith('timenest-')));
+      const cachedUrls = new Set((await shellCache.keys()).map((request) => {
+        const url = new URL(request.url);
+        return url.pathname + url.search;
+      }));
+
+      const referenced = new Set();
+      const importPattern = /(?:from|import)\s+['"]([^'"]+)['"]/g;
+      for (const page of ['../index.html', '../login.html', '../signup.html']) {
+        const html = await (await fetch(page)).text();
+        for (const match of html.matchAll(/(?:href|src)="([^"]+)"/g)) {
+          const target = match[1];
+          if (!target.startsWith('css/') && !target.startsWith('js/')) continue;
+          referenced.add('/' + target);
+          if (!target.startsWith('js/')) continue;
+          const source = await (await fetch('/' + target)).text();
+          const base = '/' + target.slice(0, target.lastIndexOf('/') + 1);
+          for (const specifier of source.matchAll(importPattern)) {
+            if (!specifier[1].startsWith('.')) continue;
+            const resolved = new URL(specifier[1], 'http://probe' + base);
+            referenced.add(resolved.pathname + resolved.search);
+          }
+        }
+      }
+
+      const missing = [...referenced].filter((url) => !cachedUrls.has(url)).sort();
+      if (missing.length > 0) throw new Error(`Assets referenced by the pages but not precached: ${missing.join(', ')}`);
+      addResult(`All ${referenced.size} assets referenced by the pages are precached.`);
+
+      // Visiting another page must not replace the cached app shell: a
+      // navigation is cached under its own URL, never over the shell.
+      const loginPage = await (await fetch('../login.html')).text();
+      const shellBody = await (await caches.match(new URL('../index.html', window.location.href))).text();
+      if (shellBody.includes('id="auth-form"')) {
+        throw new Error('The cached app shell was replaced by the sign-in page. Navigations must not overwrite the shell.');
+      }
+      if (!loginPage.includes('id="auth-form"')) throw new Error('The sign-in page did not load as expected.');
+      addResult('The cached app shell survives a visit to the sign-in page.');
+
+      status.className = 'pass';
+      status.textContent = 'PASS: the TimeNest shell is cached and ready for an offline reload.';
+      reloadButton.hidden = false;
+      reloadButton.addEventListener('click', () => window.location.reload());
+    } catch (error) {
+      status.className = 'fail';
+      status.textContent = `FAIL: ${error.message}`;
+    }
+  </script>
+</body>
+</html>

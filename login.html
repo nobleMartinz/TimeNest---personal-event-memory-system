@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Sign in to your TimeNest profile to open your reminders, diary, and calendar.">
+  <meta name="theme-color" content="#2d7567">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="assets/icons/timenest-192.svg" type="image/svg+xml">
+  <title>Sign in | TimeNest</title>
+  <link rel="stylesheet" href="css/reset.css">
+  <link rel="stylesheet" href="css/variables.css?v=2">
+  <link rel="stylesheet" href="css/base.css?v=2">
+  <link rel="stylesheet" href="css/components.css?v=2">
+  <link rel="stylesheet" href="css/forms.css">
+  <link rel="stylesheet" href="css/auth.css?v=2">
+</head>
+<body class="auth-body">
+  <main class="auth-shell">
+    <section class="auth-card" aria-labelledby="auth-title">
+      <header class="auth-header">
+        <a class="auth-brand" href="./index.html" aria-label="TimeNest home">
+          <span class="brand-mark" aria-hidden="true">TN</span>
+          <span>
+            <strong>TimeNest</strong>
+          </span>
+        </a>
+        <h1 class="auth-title" id="auth-title">Welcome back</h1>
+        <p class="auth-subtitle">Sign in to open your reminders, diary, and calendar.</p>
+      </header>
+
+      <p class="auth-notice" id="auth-no-account" hidden>
+        No profile exists on this device yet. <a class="auth-link" href="./signup.html" data-auth-signup-link>Create a profile</a> to protect your data with a password.
+      </p>
+
+      <form class="auth-form" id="auth-form" method="dialog" novalidate>
+        <p class="auth-alert" id="auth-alert" role="alert" aria-live="assertive" hidden></p>
+
+        <div class="form-field">
+          <label class="form-label" for="auth-email">Email address</label>
+          <input class="form-control" id="auth-email" name="email" type="email" autocomplete="username" required placeholder="you@example.com" inputmode="email">
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" for="auth-password">Password</label>
+          <div class="auth-password-field">
+            <input class="form-control" id="auth-password" name="password" type="password" autocomplete="current-password" required minlength="8" placeholder="Your password">
+            <button class="auth-password-toggle" type="button" data-password-toggle="auth-password" aria-label="Show password">Show</button>
+          </div>
+        </div>
+
+        <label class="auth-checkbox" for="auth-remember">
+          <input id="auth-remember" name="remember" type="checkbox">
+          <span>Keep me signed in on this device</span>
+        </label>
+
+        <button class="button button--primary" id="auth-submit" type="submit">Sign in</button>
+      </form>
+
+      <div id="auth-reset-block">
+        <div class="auth-divider">Forgot your password?</div>
+
+        <p class="auth-notice">
+          TimeNest keeps your profile on this device only, so there is no email to reset it with.
+          Resetting the profile removes the password and keeps every reminder and diary entry.
+        </p>
+        <button class="button button--secondary auth-reset-button" type="button" id="auth-reset-profile">Reset the local profile</button>
+      </div>
+
+      <footer class="auth-footer">
+        <p>New to TimeNest? <a class="auth-link" href="./signup.html" data-auth-signup-link>Create a profile</a></p>
+        <p><a class="auth-link" href="./index.html">Continue without signing in</a></p>
+      </footer>
+    </section>
+  </main>
+
+  <script type="module" src="js/pages/login-entry.js?v=2"></script>
+</body>
+</html>

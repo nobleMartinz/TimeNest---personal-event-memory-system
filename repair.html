@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Repair TimeNest cache</title>
+  <style>
+    body { align-items: center; background: #f7f8f5; color: #1d2a24; display: flex; font: 16px/1.5 system-ui, sans-serif; justify-content: center; margin: 0; min-height: 100vh; padding: 1.5rem; }
+    main { background: #fff; border: 1px solid #e0e6df; border-radius: 14px; box-shadow: 0 12px 30px rgba(29,42,36,.08); max-width: 560px; padding: 2rem; }
+    h1 { margin-top: 0; } p { color: #526057; } button { background: #2d7567; border: 0; border-radius: 8px; color: #fff; cursor: pointer; font: inherit; font-weight: 700; min-height: 44px; padding: .65rem 1rem; } #result { margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Repair TimeNest</h1>
+    <p>This removes outdated TimeNest app files from this browser, then loads the current version. Your reminders and diary entries are stored separately in IndexedDB and will not be deleted.</p>
+    <button id="repair" type="button">Repair and reload TimeNest</button>
+    <p id="result" role="status" aria-live="polite"></p>
+  </main>
+  <script>
+    const button = document.querySelector('#repair');
+    const result = document.querySelector('#result');
+    const supportedProtocol = location.protocol === 'http:' || location.protocol === 'https:';
+    if (!supportedProtocol) {
+      button.disabled = true;
+      result.textContent = 'TimeNest is open as a file. Start a local web server, then open http://127.0.0.1:4173/repair.html instead.';
+    }
+    button.addEventListener('click', async () => {
+      if (!supportedProtocol) return;
+      button.disabled = true;
+      result.textContent = 'Removing outdated app files…';
+      try {
+        const registrations = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistrations() : [];
+        await Promise.all(registrations
+          .filter((registration) => new URL(registration.scope).origin === location.origin)
+          .map((registration) => registration.unregister()));
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.filter((name) => name.startsWith('timenest-')).map((name) => caches.delete(name)));
+        result.textContent = 'Repair complete. Loading TimeNest…';
+        location.replace('./?repaired=1#dashboard');
+      } catch (error) {
+        button.disabled = false;
+        result.textContent = `Repair could not complete: ${error.message}`;
+      }
+    });
+  </script>
+</body>
+</html>
