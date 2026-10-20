@@ -1,4 +1,4 @@
-import { eventRepository } from '../data/storage.js?v=2';
+import { eventRepository } from '../data/storage.js?v=4';
 import { differenceInDays, normalizeDate } from './date-service.js';
 
 const EVENT_TIMING = Object.freeze({

@@ -1,0 +1,160 @@
+.bills-toolbar {
+  align-items: center;
+  background: var(--color-surface-inset);
+  border: var(--border-thin);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+}
+
+.bills-toolbar .form-control {
+  min-height: 44px;
+}
+
+.bills-filter {
+  max-width: 200px;
+}
+
+.bills-search {
+  flex: 1 1 220px;
+  max-width: 320px;
+}
+
+.bills-category-filter {
+  max-width: 200px;
+}
+
+.bills-sort {
+  max-width: 220px;
+}
+
+.bill-list {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.bill-card {
+  align-items: center;
+  background: var(--color-surface);
+  border: var(--border-thin);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: minmax(0, 1fr) minmax(150px, auto) minmax(110px, auto) auto;
+  padding: var(--space-5);
+}
+
+.bill-card--paid {
+  opacity: 0.72;
+}
+
+.bill-card__main {
+  min-width: 0;
+}
+
+.bill-card__title-row {
+  align-items: center;
+  display: flex;
+  gap: var(--space-3);
+}
+
+.bill-card__title-row h3 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bill-card__marker {
+  background: var(--color-coral);
+  border-radius: 3px;
+  flex: 0 0 auto;
+  height: 18px;
+  width: 5px;
+}
+
+.bill-card__meta,
+.bill-card__notes,
+.bill-card__paid-date {
+  color: var(--color-ink-muted);
+  font-size: var(--text-sm);
+}
+
+.bill-card__meta {
+  margin-top: var(--space-2);
+}
+
+.bill-card__notes {
+  margin-top: var(--space-3);
+  max-width: 620px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bill-card__due,
+.bill-card__amount {
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+
+.bill-card__due strong,
+.bill-card__amount strong {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 500;
+}
+
+.bill-card__amount strong {
+  color: var(--color-accent-dark);
+}
+
+.bill-card__actions {
+  align-items: center;
+  display: flex;
+  gap: var(--space-2);
+}
+
+@media (max-width: 980px) {
+  .bill-card {
+    grid-template-columns: minmax(0, 1fr) minmax(140px, auto) auto;
+  }
+
+  .bill-card__amount {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 720px) {
+  .bills-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .bills-filter,
+  .bills-search,
+  .bills-category-filter,
+  .bills-sort {
+    max-width: none;
+  }
+
+  .bill-card {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .bill-card__due,
+  .bill-card__amount {
+    align-items: flex-start;
+  }
+
+  .bill-card__actions {
+    justify-content: space-between;
+  }
+}

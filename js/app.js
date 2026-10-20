@@ -1,9 +1,10 @@
 import { initRemindersPage } from './pages/reminders-page.js';
-import { initDashboardPage } from './pages/dashboard-page.js?v=2';
+import { initDashboardPage } from './pages/dashboard-page.js?v=4';
 import { initDiaryPage } from './pages/diary-page.js';
 import { initEventsPage } from './pages/events-page.js?v=3';
+import { initBillsPage } from './pages/bills-page.js?v=2';
 import { initCalendarPage } from './pages/calendar-page.js?v=2';
-import { applySavedTheme, initSettingsPage } from './pages/settings-page.js?v=2';
+import { applySavedTheme, initSettingsPage } from './pages/settings-page.js?v=4';
 import { checkAndNotifyReminders } from './services/notification-service.js';
 import { registerServiceWorker } from './services/service-worker-service.js?v=2';
 import { getAuthState } from './services/auth-service.js';
@@ -17,9 +18,10 @@ const mobileHeader = document.querySelector('.mobile-header');
 const remindersView = document.querySelector('#reminders-view');
 const diaryView = document.querySelector('#diary-view');
 const eventsView = document.querySelector('#events-view');
+const billsView = document.querySelector('#bills-view');
 const calendarView = document.querySelector('#calendar-view');
 const settingsView = document.querySelector('#settings-view');
-const views = { reminders: remindersView, diary: diaryView, events: eventsView, calendar: calendarView, settings: settingsView };
+const views = { reminders: remindersView, diary: diaryView, events: eventsView, bills: billsView, calendar: calendarView, settings: settingsView };
 const dashboardNodes = [...main.children].filter((node) => !Object.values(views).includes(node));
 const connectionStatus = document.querySelector('#connection-status');
 const connectionMessage = document.querySelector('[data-connection-message]');
@@ -97,12 +99,30 @@ let remindersPage;
 let dashboardPage;
 let diaryPage;
 let eventsPage;
+let billsPage;
 let calendarPage;
 let settingsPage;
+// The page controllers are built while the app starts, and that takes a
+// moment when the database has to be upgraded or the profile has to be
+// checked. A route change during that window must not call a controller that
+// does not exist yet, so the views switch immediately and the data is loaded
+// once the app is ready.
+let appReady = false;
+
+function refreshCurrentRoute(currentRoute) {
+  if (!appReady) return;
+  if (currentRoute === 'reminders') void remindersPage.refresh();
+  else if (currentRoute === 'diary') void diaryPage.refresh();
+  else if (currentRoute === 'events') void eventsPage.refresh();
+  else if (currentRoute === 'bills') void billsPage.refresh();
+  else if (currentRoute === 'calendar') void calendarPage.refresh();
+  else if (currentRoute === 'settings') void settingsPage.refresh();
+  else void dashboardPage.refresh();
+}
 
 function renderRoute() {
   const route = window.location.hash.slice(1) || 'dashboard';
-  const currentRoute = ['reminders', 'diary', 'events', 'calendar', 'settings'].includes(route) ? route : 'dashboard';
+  const currentRoute = ['reminders', 'diary', 'events', 'bills', 'calendar', 'settings'].includes(route) ? route : 'dashboard';
   dashboardNodes.forEach((node) => {
     node.hidden = currentRoute !== 'dashboard';
   });
@@ -115,30 +135,34 @@ function renderRoute() {
     if (isActive) link.setAttribute('aria-current', 'page');
     else link.removeAttribute('aria-current');
   });
-  if (currentRoute === 'reminders') void remindersPage.refresh();
-  else if (currentRoute === 'diary') void diaryPage.refresh();
-  else if (currentRoute === 'events') void eventsPage.refresh();
-  else if (currentRoute === 'calendar') void calendarPage.refresh();
-  else if (currentRoute === 'settings') void settingsPage.refresh();
-  else void dashboardPage.refresh();
+  refreshCurrentRoute(currentRoute);
 }
 
 window.addEventListener('hashchange', renderRoute);
+window.addEventListener('timenest:profile-changed', (event) => {
+  if (!appReady) return;
+  dashboardPage.setGreeting(event.detail?.displayName);
+});
 window.addEventListener('timenest:data-changed', () => {
+  if (!appReady) return;
   void dashboardPage.refresh();
   void diaryPage.refresh();
   void eventsPage.refresh();
+  void billsPage.refresh();
   void calendarPage.refresh();
   void settingsPage.refresh();
 });
 
-async function startApplication() {
+async function startApplication(authState) {
   remindersPage = initRemindersPage();
   dashboardPage = initDashboardPage();
+  dashboardPage.setGreeting(authState?.account?.displayName);
   diaryPage = initDiaryPage();
   eventsPage = initEventsPage();
+  billsPage = initBillsPage();
   calendarPage = initCalendarPage();
   settingsPage = initSettingsPage();
+  appReady = true;
   main.inert = false;
   mobileHeader.inert = false;
 
@@ -182,7 +206,7 @@ async function bootstrap() {
     return;
   }
 
-  await startApplication();
+  await startApplication(authState);
 }
 
 bootstrap();

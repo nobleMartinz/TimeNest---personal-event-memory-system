@@ -1,4 +1,4 @@
-import { STORE_NAMES, requestToPromise, withStore } from './database.js?v=2';
+import { STORE_NAMES, requestToPromise, withStore } from './database.js?v=3';
 
 function createId(prefix) {
   if (globalThis.crypto?.randomUUID) {
@@ -45,11 +45,13 @@ function createRepository(storeName, idPrefix) {
 const reminderRepository = createRepository(STORE_NAMES.reminders, 'reminder');
 const diaryRepository = createRepository(STORE_NAMES.diaryEntries, 'diary');
 const eventRepository = createRepository(STORE_NAMES.events, 'event');
+const billRepository = createRepository(STORE_NAMES.bills, 'bill');
 const notificationHistoryRepository = createRepository(STORE_NAMES.notificationHistory, 'notification');
 
 const DEFAULT_SETTINGS = Object.freeze({
   key: 'app',
   theme: 'system',
+  currency: 'NGN',
   notificationEnabled: true,
   defaultReminderDays: 7,
   defaultReminderTime: '09:00',
@@ -75,11 +77,13 @@ const repositories = Object.freeze({
   reminders: reminderRepository,
   diaryEntries: diaryRepository,
   events: eventRepository,
+  bills: billRepository,
   notificationHistory: notificationHistoryRepository
 });
 
 export {
   DEFAULT_SETTINGS,
+  billRepository,
   diaryRepository,
   eventRepository,
   getSettings,

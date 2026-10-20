@@ -16,7 +16,7 @@ import {
   differenceInDays,
   normalizeDate
 } from '../services/date-service.js';
-import { getSettings } from '../data/storage.js?v=2';
+import { getSettings } from '../data/storage.js?v=4';
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>'"]/g, (character) => ({

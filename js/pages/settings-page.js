@@ -1,4 +1,4 @@
-import { getSettings, updateSettings } from '../data/storage.js?v=2';
+import { getSettings, updateSettings } from '../data/storage.js?v=4';
 import {
   checkAndNotifyReminders,
   getNotificationStatus,
@@ -11,7 +11,7 @@ import {
   clearAllData,
   createExportDocument,
   importDocument
-} from '../services/data-transfer-service.js?v=2';
+} from '../services/data-transfer-service.js?v=3';
 import {
   changePassword,
   deleteAccount,
@@ -21,6 +21,7 @@ import {
   signOut,
   updateProfile
 } from '../services/auth-service.js';
+import { CURRENCIES, DEFAULT_CURRENCY } from '../services/currency-service.js?v=2';
 
 function applyTheme(theme) {
   document.documentElement.toggleAttribute('data-theme', theme !== 'system');
@@ -42,6 +43,7 @@ function initSettingsPage() {
   const checkButton = document.querySelector('#check-notifications');
   const resultText = document.querySelector('#notification-check-result');
   const themeSelect = document.querySelector('#theme-select');
+  const currencySelect = document.querySelector('#currency-select');
   const defaultDays = document.querySelector('#default-reminder-days');
   const defaultTime = document.querySelector('#default-reminder-time');
   const savePreferencesButton = document.querySelector('#save-preferences');
@@ -70,6 +72,13 @@ function initSettingsPage() {
     window.setTimeout(() => toast.remove(), 3600);
   }
 
+  function populateCurrencies() {
+    if (!currencySelect) return;
+    currencySelect.innerHTML = CURRENCIES
+      .map((currency) => `<option value="${currency.code}">${currency.symbol} ${currency.code} — ${currency.name}</option>`)
+      .join('');
+  }
+
   async function refresh() {
     const [settings, status] = await Promise.all([getSettings(), Promise.resolve(getNotificationStatus())]);
     statusText.textContent = status.message;
@@ -77,6 +86,7 @@ function initSettingsPage() {
     enabledToggle.checked = settings.notificationEnabled;
     overdueToggle.checked = settings.overdueRemindersEnabled;
     themeSelect.value = settings.theme;
+    currencySelect.value = settings.currency || DEFAULT_CURRENCY;
     defaultDays.value = settings.defaultReminderDays;
     defaultTime.value = settings.defaultReminderTime;
     applyTheme(settings.theme);
@@ -132,8 +142,9 @@ function initSettingsPage() {
       if (action === 'save-profile') {
         const account = await getCurrentAccount();
         if (!account) throw new Error('Sign in again before updating the profile.');
-        await updateProfile({ displayName: accountDisplayName.value, accountId: account.id });
+        const updated = await updateProfile({ displayName: accountDisplayName.value, accountId: account.id });
         await refreshAccount();
+        window.dispatchEvent(new CustomEvent('timenest:profile-changed', { detail: { displayName: updated.displayName } }));
         showToast('Profile updated.');
         return;
       }
@@ -154,12 +165,14 @@ function initSettingsPage() {
         await deleteAccount(account.id);
         showToast('Profile deleted.');
         await refreshAccount();
+        window.dispatchEvent(new CustomEvent('timenest:profile-changed', { detail: { displayName: '' } }));
       }
       if (action === 'reset-profile') {
         if (!window.confirm('Remove the password from this device? Your reminders, diary entries, and preferences stay, but the profile will be gone and TimeNest will open without a password.')) return;
         await resetLocalProfile();
         showToast('Password removed from this device.');
         await refreshAccount();
+        window.dispatchEvent(new CustomEvent('timenest:profile-changed', { detail: { displayName: '' } }));
       }
     } catch (error) {
       showToast(error.message, 'error');
@@ -230,7 +243,7 @@ function initSettingsPage() {
       showToast('Default reminder time must use HH:MM.', 'error');
       return;
     }
-    await updateSettings({ theme: themeSelect.value, defaultReminderDays: days, defaultReminderTime: time });
+    await updateSettings({ theme: themeSelect.value, currency: currencySelect.value, defaultReminderDays: days, defaultReminderTime: time });
     applyTheme(themeSelect.value);
     showToast('Preferences saved.');
     window.dispatchEvent(new CustomEvent('timenest:data-changed'));
@@ -295,7 +308,8 @@ function initSettingsPage() {
     }
   });
 
+  populateCurrencies();
+
   return { refresh, page };
 }
-
 export { applySavedTheme, applyTheme, initSettingsPage };

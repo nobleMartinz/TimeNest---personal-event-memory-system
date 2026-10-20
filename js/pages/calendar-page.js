@@ -1,6 +1,6 @@
-import { diaryRepository } from '../data/storage.js?v=2';
-import { reminderRepository } from '../data/storage.js?v=2';
-import { eventRepository } from '../data/storage.js?v=2';
+import { diaryRepository } from '../data/storage.js?v=4';
+import { reminderRepository } from '../data/storage.js?v=4';
+import { eventRepository } from '../data/storage.js?v=4';
 import { daysInMonth, normalizeDate } from '../services/date-service.js';
 
 function escapeHtml(value) {

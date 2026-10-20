@@ -1,10 +1,11 @@
 const DATABASE_NAME = 'timenest-local';
-const DATABASE_VERSION = 3;
+const DATABASE_VERSION = 4;
 
 const STORE_NAMES = Object.freeze({
   reminders: 'reminders',
   diaryEntries: 'diaryEntries',
   events: 'events',
+  bills: 'bills',
   settings: 'settings',
   notificationHistory: 'notificationHistory',
   accounts: 'accounts',
@@ -65,6 +66,13 @@ function createObjectStores(database) {
     const events = database.createObjectStore(STORE_NAMES.events, { keyPath: 'id' });
     events.createIndex('date', 'date', { unique: false });
     events.createIndex('category', 'category', { unique: false });
+  }
+
+  if (!database.objectStoreNames.contains(STORE_NAMES.bills)) {
+    const bills = database.createObjectStore(STORE_NAMES.bills, { keyPath: 'id' });
+    bills.createIndex('dueDate', 'dueDate', { unique: false });
+    bills.createIndex('category', 'category', { unique: false });
+    bills.createIndex('paid', 'paid', { unique: false });
   }
 
   if (!database.objectStoreNames.contains(STORE_NAMES.settings)) {

@@ -1,4 +1,4 @@
-import { diaryRepository } from '../data/storage.js?v=2';
+import { diaryRepository } from '../data/storage.js?v=4';
 import { normalizeDate } from './date-service.js';
 
 function normalizeDiaryInput(input) {

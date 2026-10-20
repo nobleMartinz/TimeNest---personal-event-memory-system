@@ -1,4 +1,4 @@
-import { getDatabase, STORE_NAMES } from './database.js?v=2';
+import { getDatabase, STORE_NAMES } from './database.js?v=3';
 import {
   diaryRepository,
   eventRepository,

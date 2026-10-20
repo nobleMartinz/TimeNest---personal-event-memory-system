@@ -2,8 +2,8 @@ import {
   getSettings,
   notificationHistoryRepository,
   updateSettings
-} from '../data/storage.js?v=2';
-import { reminderRepository } from '../data/storage.js?v=2';
+} from '../data/storage.js?v=4';
+import { reminderRepository } from '../data/storage.js?v=4';
 import { differenceInDays, normalizeDate } from './date-service.js';
 
 const NOTIFICATION_KINDS = Object.freeze({

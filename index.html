@@ -24,6 +24,7 @@
   <link rel="stylesheet" href="css/reminders.css?v=4">
   <link rel="stylesheet" href="css/diary.css">
   <link rel="stylesheet" href="css/events.css?v=1">
+  <link rel="stylesheet" href="css/bills.css?v=1">
   <link rel="stylesheet" href="css/calendar.css?v=1">
   <link rel="stylesheet" href="css/settings.css">
   <link rel="stylesheet" href="css/responsive.css?v=4">
@@ -78,6 +79,10 @@
           <span class="nav-link__icon" aria-hidden="true">◈</span>
           <span>Events</span>
         </a>
+        <a class="nav-link" href="#bills">
+          <span class="nav-link__icon" aria-hidden="true">¤</span>
+          <span>Bills</span>
+        </a>
         <a class="nav-link" href="#calendar">
           <span class="nav-link__icon" aria-hidden="true">□</span>
           <span>Calendar</span>
@@ -108,7 +113,7 @@
       <header class="page-header">
         <div>
           <p class="eyebrow" data-dashboard-date>Saturday, September 12, 2026</p>
-          <h1>Good morning, make today count.</h1>
+          <h1 id="dashboard-greeting">Hello, make today count.</h1>
           <p class="page-header__summary">A clear view of what needs your attention and what is worth remembering.</p>
         </div>
         <div class="page-header__actions">
@@ -119,6 +124,10 @@
           <button class="button button--secondary" type="button" data-open-event-form>
             <span aria-hidden="true">+</span>
             Add event
+          </button>
+          <button class="button button--secondary" type="button" data-open-bill-form>
+            <span aria-hidden="true">+</span>
+            Add bill
           </button>
           <button class="button button--primary" type="button" data-open-reminder-form>
             <span aria-hidden="true">+</span>
@@ -286,6 +295,36 @@
         <div id="event-list" class="event-list" aria-live="polite"></div>
       </section>
 
+      <section class="app-view bills-view" id="bills-view" aria-labelledby="bills-page-title" hidden>
+        <header class="page-header page-header--compact">
+          <div>
+            <p class="eyebrow">Keep every payment in view</p>
+            <h1 id="bills-page-title">Bills</h1>
+            <p class="page-header__summary">The payments you are expecting, what is already settled, and what is next to fall due.</p>
+          </div>
+          <button class="button button--primary" type="button" data-open-bill-form><span aria-hidden="true">+</span> Add bill</button>
+        </header>
+        <div class="bills-toolbar">
+          <label class="form-label" for="bill-filter">Show</label>
+          <select class="form-control bills-filter" id="bill-filter">
+            <option value="all">All bills</option>
+            <option value="unpaid">Unpaid bills</option>
+            <option value="paid">Paid bills</option>
+          </select>
+          <label class="form-label" for="bill-search">Search</label>
+          <input class="form-control bills-search" id="bill-search" type="search" placeholder="Search name, category, or notes...">
+          <label class="form-label" for="bill-category-filter">Category</label>
+          <select class="form-control bills-category-filter" id="bill-category-filter"><option value="">All categories</option></select>
+          <label class="form-label" for="bill-sort">Sort</label>
+          <select class="form-control bills-sort" id="bill-sort">
+            <option value="due">Due date</option>
+            <option value="amount">Amount (highest first)</option>
+            <option value="title">Name A-Z</option>
+          </select>
+        </div>
+        <div id="bill-list" class="bill-list" aria-live="polite"></div>
+      </section>
+
       <section class="app-view calendar-view" id="calendar-view" aria-labelledby="calendar-page-title" hidden>
         <header class="page-header page-header--compact">
           <div><p class="eyebrow">See your time in context</p><h1 id="calendar-page-title">Calendar</h1><p class="page-header__summary">Reminders, diary entries, and events, gathered by date.</p></div>
@@ -310,11 +349,12 @@
           <div class="settings-note"><strong>About browser notifications</strong><p>Browser permissions and device settings control whether notifications appear. An ordinary browser tab cannot always wake at an exact future time, so TimeNest checks when the app opens or when you run a check. A future push service can extend this without changing your reminder data.</p></div>
         </section>
         <section class="content-panel settings-panel" aria-labelledby="preferences-title">
-          <div class="panel-heading"><div><p class="eyebrow">Preferences</p><h2 id="preferences-title">Appearance and reminder defaults</h2></div></div>
+          <div class="panel-heading"><div><p class="eyebrow">Make it yours</p><h2 id="preferences-title">Appearance, currency, and reminder defaults</h2></div></div>
           <div class="settings-fields">
-            <label class="form-field"><span class="form-label">Theme</span><select class="form-control" id="theme-select"><option value="system">Use device setting</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
-            <label class="form-field"><span class="form-label">Default reminder lead time</span><input class="form-control" id="default-reminder-days" type="number" min="0" step="1"><small>Days before the due date.</small></label>
-            <label class="form-field"><span class="form-label">Default reminder time</span><input class="form-control" id="default-reminder-time" type="time"><small>Used for newly created reminders.</small></label>
+            <label class="form-field"><span class="form-label">Theme</span><select class="form-control" id="theme-select"><option value="system">Match my device</option><option value="light">Light</option><option value="dark">Dark</option></select></label>
+            <label class="form-field"><span class="form-label">Currency</span><select class="form-control" id="currency-select"></select><small class="form-hint">Used for the amounts shown in Bills.</small></label>
+            <label class="form-field"><span class="form-label">Default reminder lead time</span><input class="form-control" id="default-reminder-days" type="number" min="0" max="60" step="1"></label>
+            <label class="form-field"><span class="form-label">Default reminder time</span><input class="form-control" id="default-reminder-time" type="time"></label>
           </div>
           <div class="settings-actions"><button class="button button--primary" type="button" id="save-preferences">Save preferences</button></div>
         </section>
@@ -330,7 +370,7 @@
         </section>
         <section class="content-panel settings-panel" aria-labelledby="data-title">
           <div class="panel-heading"><div><p class="eyebrow">Your local data</p><h2 id="data-title">Export, import, or clear</h2></div></div>
-          <p class="settings-permission">Exports include reminders, diary entries, events, and preferences. Imported files are validated before any data changes.</p>
+          <p class="settings-permission">Exports include reminders, diary entries, events, bills, and preferences. Imported files are validated before any data changes.</p>
           <div class="settings-fields settings-fields--data"><label class="form-field"><span class="form-label">Import behavior</span><select class="form-control" id="import-mode"><option value="merge">Merge (keep existing duplicates)</option><option value="replace">Replace all existing data</option></select></label><label class="form-field"><span class="form-label">TimeNest JSON file</span><input class="form-control" id="import-file" type="file" accept="application/json,.json"></label></div>
           <div class="settings-actions"><button class="button button--secondary" type="button" id="export-data">Export JSON</button><button class="button button--primary" type="button" id="import-data">Import JSON</button><button class="button button--danger" type="button" id="clear-all-data">Clear all data</button></div>
           <p class="settings-check-result" id="data-transfer-result" aria-live="polite"></p>
@@ -400,6 +440,24 @@
     <div class="modal" id="event-detail-content"></div>
   </dialog>
 
+  <dialog class="modal-dialog" id="bill-form-dialog" aria-labelledby="bill-form-title">
+    <form class="modal" id="bill-form" method="dialog">
+      <div class="modal__header"><h2 id="bill-form-title">Add bill</h2><button class="icon-button icon-button--light" type="button" aria-label="Close bill form" data-close-dialog="bill-form-dialog">×</button></div>
+      <div class="modal__body form-grid">
+        <div class="form-field form-field--full"><label class="form-label" for="bill-title">Name</label><input class="form-control" id="bill-title" name="title" required maxlength="120" placeholder="e.g. Internet"></div>
+        <div class="form-field"><label class="form-label" for="bill-amount">Amount</label><input class="form-control" id="bill-amount" name="amount" type="number" min="0" step="0.01" required placeholder="0.00"></div>
+        <div class="form-field"><label class="form-label" for="bill-due-date">Due date</label><input class="form-control" id="bill-due-date" name="dueDate" type="date" required></div>
+        <div class="form-field"><label class="form-label" for="bill-category">Category</label><input class="form-control" id="bill-category" name="category" maxlength="60" value="General"></div>
+        <div class="form-field form-field--full"><label class="form-label" for="bill-notes">Notes <span class="form-hint">optional</span></label><textarea class="form-control" id="bill-notes" name="notes" maxlength="2000" placeholder="Add the details you will want later..."></textarea></div>
+      </div>
+      <div class="modal__footer"><button class="button button--secondary" type="button" data-close-dialog="bill-form-dialog">Cancel</button><button class="button button--primary" type="submit">Save bill</button></div>
+    </form>
+  </dialog>
+
+  <dialog class="modal-dialog" id="bill-detail-dialog" aria-labelledby="bill-detail-title">
+    <div class="modal" id="bill-detail-content"></div>
+  </dialog>
+
   <dialog class="modal-dialog" id="account-password-dialog" aria-labelledby="account-password-title">
     <form class="modal" id="account-password-form" method="dialog">
       <div class="modal__header"><h2 id="account-password-title">Change password</h2><button class="icon-button icon-button--light" type="button" aria-label="Close password form" data-close-dialog="account-password-dialog">×</button></div>
@@ -413,6 +471,6 @@
 
   <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
 
-  <script type="module" src="js/app.js?v=9"></script>
+  <script type="module" src="js/app.js?v=13"></script>
 </body>
 </html>

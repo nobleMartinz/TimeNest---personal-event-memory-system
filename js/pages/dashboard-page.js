@@ -1,4 +1,4 @@
-import { diaryRepository } from '../data/storage.js?v=2';
+import { diaryRepository } from '../data/storage.js?v=4';
 import { completeReminder, listReminders } from '../services/reminder-service.js';
 import { listEvents } from '../services/event-service.js?v=1';
 import { differenceInDays, normalizeDate } from '../services/date-service.js';
@@ -15,6 +15,13 @@ function escapeHtml(value) {
 
 function formatDate(value) {
   return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(`${value}T00:00:00`));
+}
+
+// Only the first name is used, so a profile called "Martin Smith" greets the
+// person as Martin rather than with the whole name.
+function greetingFor(displayName) {
+  const name = String(displayName || '').trim().split(/\s+/)[0] || '';
+  return name ? `Hello ${name}, make today count.` : 'Hello, make today count.';
 }
 
 function emptyState(title, message, action = '') {
@@ -40,6 +47,7 @@ function completedRow(item) {
 
 function initDashboardPage() {
   const dashboardDate = document.querySelector('[data-dashboard-date]');
+  const greeting = document.querySelector('#dashboard-greeting');
   const todayValue = document.querySelector('[data-dashboard-value="today"]');
   const upcomingValue = document.querySelector('[data-dashboard-value="upcoming"]');
   const overdueValue = document.querySelector('[data-dashboard-value="overdue"]');
@@ -59,6 +67,13 @@ function initDashboardPage() {
     toast.textContent = message;
     toastRegion.append(toast);
     window.setTimeout(() => toast.remove(), 3600);
+  }
+
+  // The greeting uses the name from the local profile, so it changes as soon
+  // as the profile is renamed.
+  function setGreeting(displayName) {
+    if (!greeting) return;
+    greeting.textContent = greetingFor(displayName);
   }
 
   async function refresh() {
@@ -120,7 +135,7 @@ function initDashboardPage() {
     }
   });
 
-  return { refresh };
+  return { refresh, setGreeting };
 }
 
 export { initDashboardPage };
